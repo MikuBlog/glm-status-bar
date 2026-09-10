@@ -7,12 +7,12 @@ final class AppModel: ObservableObject {
     enum State: Equatable {
         case loggedOut
         case loading
-        case ok([QuotaLimit], Date)
+        case ok([QuotaLimit], level: String?, Date)
         case error(String, isAuthError: Bool)
     }
 
     enum Outcome {
-        case success([QuotaLimit])
+        case success([QuotaLimit], level: String?)
         case failure(String)
         case authFailure
     }
@@ -116,10 +116,10 @@ final class AppModel: ObservableObject {
         case .failure(let message):
             state = .error(message, isAuthError: false)
 
-        case .success(let limits):
+        case .success(let limits, let level):
             let now = Date()
             lastUpdated = now
-            state = .ok(limits, now)
+            state = .ok(limits, level: level, now)
         }
     }
 
@@ -150,18 +150,24 @@ final class AppModel: ObservableObject {
         guard !quota.limits.isEmpty else {
             return .failure("暂无额度数据，请确认已订阅 Coding Plan")
         }
-        return .success(quota.limits)
+        return .success(quota.limits, level: quota.level)
     }
 
     // MARK: - Display helpers
 
     /// All limits, ordered 5h first, weekly second, others by usage.
     var displayLimits: [QuotaLimit] {
-        guard case .ok(let limits, _) = state else { return [] }
+        guard case .ok(let limits, _, _) = state else { return [] }
         return limits.sorted { a, b in
             if a.rank != b.rank { return a.rank < b.rank }
             return a.effectivePercentage > b.effectivePercentage
         }
+    }
+
+    /// Plan tier from the API, e.g. "max" -> "MAX".
+    var planLevelBadge: String? {
+        guard case .ok(_, let level, _) = state, let level, !level.isEmpty else { return nil }
+        return level.uppercased()
     }
 
     /// The (up to) two limits surfaced in the menu bar itself.

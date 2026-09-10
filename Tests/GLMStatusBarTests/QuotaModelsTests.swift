@@ -2,85 +2,82 @@ import XCTest
 @testable import GLMStatusBar
 
 final class QuotaModelsTests: XCTestCase {
+    /// Exact structure captured from the live API on 2026-09-10.
     private let fixture = """
-    {
-      "code": 200,
-      "success": true,
-      "msg": null,
-      "data": {
-        "level": "",
-        "limits": [
-          {
-            "type": "credits",
-            "unit": "fiveHours",
-            "percentage": 7,
-            "usage": 2140,
-            "currentValue": 28000,
-            "nextResetTime": "2026-09-10 21:05:00",
-            "usageDetails": [{"mdoelCode": "search", "name": "搜索", "usage": 3}]
-          },
-          {
-            "type": "credits",
-            "unit": "week",
-            "percentage": 1,
-            "usage": 2140,
-            "currentValue": 140000,
-            "nextResetTime": "2026-09-17T15:41:00+08:00"
-          }
-        ]
-      }
-    }
+    {"code":200,"msg":"操作成功","success":true,
+     "data":{"level":"max","limits":[
+       {"type":"CREDIT_LIMIT","unit":3,"number":5,
+        "usage":28000,"currentValue":5894,"remaining":22105,
+        "percentage":21,"nextResetTime":1789045559098},
+       {"type":"CREDIT_LIMIT","unit":6,"number":1,
+        "usage":140000,"currentValue":5894,"remaining":134105,
+        "percentage":4,"nextResetTime":1789630895994}
+     ]}}
     """
 
-    func testDecodesFixture() throws {
+    func testDecodesLiveFixture() throws {
         let body = try JSONDecoder().decode(QuotaResponse.self, from: Data(fixture.utf8))
         XCTAssertEqual(body.code, 200)
         XCTAssertTrue(body.success)
+        XCTAssertEqual(body.data?.level, "max")
+
         let limits = try XCTUnwrap(body.data?.limits)
         XCTAssertEqual(limits.count, 2)
-        XCTAssertEqual(limits[0].usage, 2140)
-        XCTAssertEqual(limits[0].currentValue, 28000)
-        XCTAssertEqual(limits[0].nextResetTime, "2026-09-10 21:05:00")
-        XCTAssertEqual(limits[1].displayTitle, "周额度")
-        // The web frontend's `mdoelCode` typo must still decode.
-        XCTAssertEqual(limits[0].usageDetails?.first?.modelCode, "search")
-        XCTAssertEqual(limits[0].usageDetails?.first?.name, "搜索")
+
+        let fiveHour = limits[0]
+        XCTAssertEqual(fiveHour.displayTitle, "5小时额度")
+        XCTAssertEqual(fiveHour.totalCredits, 28000)
+        XCTAssertEqual(fiveHour.usedCredits, 5894)
+        XCTAssertEqual(fiveHour.remaining, 22105)
+        XCTAssertEqual(fiveHour.effectivePercentage, 21, accuracy: 0.001)
+        XCTAssertEqual(fiveHour.nextResetTime ?? 0, 1_789_045_559_098, accuracy: 1)
+
+        let weekly = limits[1]
+        XCTAssertEqual(weekly.displayTitle, "周额度")
+        XCTAssertEqual(weekly.effectivePercentage, 4, accuracy: 0.001)
     }
 
-    func testDisplayTitleMapping() {
-        func limit(_ unit: String?, _ type: String? = "credits") -> QuotaLimit {
-            QuotaLimit(type: type, unit: unit, percentage: nil, usage: nil,
-                       currentValue: nil, nextResetTime: nil, usageDetails: nil)
+    func testNextResetTimeAcceptsNumericString() throws {
+        let json = #"{"type":"CREDIT_LIMIT","unit":3,"number":5,"usage":100,"currentValue":10,"percentage":10,"nextResetTime":"1789045559098"}"#
+        let limit = try JSONDecoder().decode(QuotaLimit.self, from: Data(json.utf8))
+        XCTAssertEqual(limit.nextResetTime ?? 0, 1_789_045_559_098, accuracy: 1)
+    }
+
+    func testDisplayTitleAndRank() {
+        func limit(_ unit: Int?, _ number: Double? = nil) -> QuotaLimit {
+            QuotaLimit(type: "CREDIT_LIMIT", unit: unit, number: number, usage: nil,
+                       currentValue: nil, remaining: nil, percentage: nil, nextResetTime: nil)
         }
-        XCTAssertEqual(limit("fiveHours").displayTitle, "5小时额度")
-        XCTAssertEqual(limit("5-hours").displayTitle, "5小时额度")
-        XCTAssertEqual(limit("week").displayTitle, "周额度")
-        XCTAssertEqual(limit("weekly").displayTitle, "周额度")
-        XCTAssertEqual(limit("monthly").displayTitle, "月额度")
-        XCTAssertEqual(limit("mcp-pool").displayTitle, "mcp-pool")
-        XCTAssertEqual(limit(nil, nil).displayTitle, "额度")
+        XCTAssertEqual(limit(3, 5).displayTitle, "5小时额度")
+        XCTAssertEqual(limit(6, 1).displayTitle, "周额度")
+        XCTAssertEqual(limit(6, 2).displayTitle, "2周额度")
+        XCTAssertEqual(limit(nil).displayTitle, "额度")
+
+        XCTAssertEqual(limit(3, 5).rank, 0)
+        XCTAssertEqual(limit(6, 1).rank, 1)
+        XCTAssertEqual(limit(99).rank, 2)
     }
 
-    func testRankOrdering() {
-        XCTAssertEqual(QuotaLimit(type: "credits", unit: "fiveHours", percentage: nil, usage: nil,
-                                  currentValue: nil, nextResetTime: nil, usageDetails: nil).rank, 0)
-        XCTAssertEqual(QuotaLimit(type: "credits", unit: "week", percentage: nil, usage: nil,
-                                  currentValue: nil, nextResetTime: nil, usageDetails: nil).rank, 1)
-        XCTAssertEqual(QuotaLimit(type: "credits", unit: "monthly", percentage: nil, usage: nil,
-                                  currentValue: nil, nextResetTime: nil, usageDetails: nil).rank, 2)
+    func testEffectivePercentageFallbackAndClamping() {
+        // percentage nil -> derive from used/total
+        let derived = QuotaLimit(type: "CREDIT_LIMIT", unit: 3, number: 5, usage: 10000,
+                                 currentValue: 2500, remaining: 7500, percentage: nil,
+                                 nextResetTime: nil)
+        XCTAssertEqual(derived.effectivePercentage, 25, accuracy: 0.001)
+
+        let clampedHigh = QuotaLimit(type: "CREDIT_LIMIT", unit: 3, number: 5, usage: 100,
+                                     currentValue: 0, remaining: 100, percentage: 120,
+                                     nextResetTime: nil)
+        XCTAssertEqual(clampedHigh.effectivePercentage, 100)
+
+        let clampedLow = QuotaLimit(type: "CREDIT_LIMIT", unit: 3, number: 5, usage: 100,
+                                    currentValue: 0, remaining: 100, percentage: -5,
+                                    nextResetTime: nil)
+        XCTAssertEqual(clampedLow.effectivePercentage, 0)
     }
 
-    func testEffectivePercentageFallback() {
-        let l1 = QuotaLimit(type: "c", unit: "week", percentage: nil, usage: 5000,
-                            currentValue: 10000, nextResetTime: nil, usageDetails: nil)
-        XCTAssertEqual(l1.effectivePercentage, 50, accuracy: 0.001)
-
-        let l2 = QuotaLimit(type: "c", unit: "week", percentage: 120, usage: nil,
-                            currentValue: nil, nextResetTime: nil, usageDetails: nil)
-        XCTAssertEqual(l2.effectivePercentage, 100)
-
-        let l3 = QuotaLimit(type: "c", unit: "week", percentage: -3, usage: nil,
-                            currentValue: nil, nextResetTime: nil, usageDetails: nil)
-        XCTAssertEqual(l3.effectivePercentage, 0)
+    func testEpochMillisecondsParsing() {
+        let date = ResetTime.parse(epochMilliseconds: 1_789_045_559_098)
+        XCTAssertEqual(date.timeIntervalSince1970, 1_789_045_559.098, accuracy: 0.002)
     }
 }

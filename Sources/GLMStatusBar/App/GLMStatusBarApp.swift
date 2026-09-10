@@ -21,7 +21,7 @@ struct GLMStatusBarApp: App {
         MenuBarExtra {
             PanelView()
                 .environmentObject(model)
-                .frame(width: 330)
+                .frame(width: 360)
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: "gauge.with.needle")

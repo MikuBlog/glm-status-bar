@@ -13,28 +13,28 @@ enum PanelSnapshot {
 
         let mock: [QuotaLimit] = [
             QuotaLimit(
-                type: "credits", unit: "fiveHours", percentage: 7,
-                usage: 2140, currentValue: 28000,
-                nextResetTime: ResetTimeTestsFixtures.todayAt(hour: 21, minute: 5),
-                usageDetails: nil
+                type: "CREDIT_LIMIT", unit: 3, number: 5,
+                usage: 28000, currentValue: 5894, remaining: 22105,
+                percentage: 21,
+                nextResetTime: ResetTimeTestsFixtures.todayEpochMs(hour: 21, minute: 5)
             ),
             QuotaLimit(
-                type: "credits", unit: "week", percentage: 1,
-                usage: 2140, currentValue: 140000,
-                nextResetTime: "2026-09-17 15:41:00",
-                usageDetails: nil
+                type: "CREDIT_LIMIT", unit: 6, number: 1,
+                usage: 140000, currentValue: 5894, remaining: 134105,
+                percentage: 4,
+                nextResetTime: 1789630895994
             ),
         ]
 
         let model = AppModel()
-        model.overrideForSnapshot(.ok(mock, Date()))
+        model.overrideForSnapshot(.ok(mock, level: "max", Date()))
 
         let renderer = ImageRenderer(
             content: PanelView()
                 .environmentObject(model)
-                .frame(width: 330)
+                .frame(width: 360)
                 .padding(8)
-                .background(Color(nsColor: .windowBackgroundColor))
+                .background(Color.black)
         )
         renderer.scale = 2
         if let image = renderer.nsImage {
@@ -50,16 +50,13 @@ enum PanelSnapshot {
 }
 
 enum ResetTimeTestsFixtures {
-    static func todayAt(hour: Int, minute: Int) -> String {
+    static func todayEpochMs(hour: Int, minute: Int) -> Double {
         let c = Calendar.current
         let now = Date()
         var comps = c.dateComponents([.year, .month, .day], from: now)
         comps.hour = hour
         comps.minute = minute
-        guard let date = c.date(from: comps) else { return "21:05" }
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        return f.string(from: date)
+        guard let date = c.date(from: comps) else { return 1_789_045_500_000 }
+        return date.timeIntervalSince1970 * 1000
     }
 }

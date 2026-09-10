@@ -7,19 +7,20 @@ final class AppModelTests: XCTestCase {
     }
 
     private let okBody = """
-    {"code":200,"success":true,"msg":null,
-     "data":{"level":"","limits":[
-       {"type":"credits","unit":"fiveHours","percentage":7,"usage":2140,"currentValue":28000,"nextResetTime":"2026-09-10 21:05:00"},
-       {"type":"credits","unit":"week","percentage":1,"usage":2140,"currentValue":140000,"nextResetTime":"2026-09-17 15:41:00"}
+    {"code":200,"success":true,"msg":"操作成功",
+     "data":{"level":"max","limits":[
+       {"type":"CREDIT_LIMIT","unit":3,"number":5,"usage":28000,"currentValue":5894,"remaining":22105,"percentage":21,"nextResetTime":1789045559098},
+       {"type":"CREDIT_LIMIT","unit":6,"number":1,"usage":140000,"currentValue":5894,"remaining":134105,"percentage":4,"nextResetTime":1789630895994}
      ]}}
     """
 
     func testClassifySuccess() {
         let outcome = AppModel.classify(data: Data(okBody.utf8), response: http(200), error: nil)
-        guard case .success(let limits) = outcome else {
+        guard case .success(let limits, let level) = outcome else {
             return XCTFail("expected success, got \(outcome)")
         }
         XCTAssertEqual(limits.count, 2)
+        XCTAssertEqual(level, "max")
     }
 
     func testClassifyHTTP401() {

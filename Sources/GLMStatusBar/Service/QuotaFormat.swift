@@ -99,6 +99,11 @@ enum ResetTime {
         return nil
     }
 
+    /// Epoch milliseconds as delivered by the live API.
+    static func parse(epochMilliseconds: Double) -> Date {
+        Date(timeIntervalSince1970: epochMilliseconds / 1000)
+    }
+
     /// "21:05 重置" for today, "9月17日 15:41 重置" otherwise.
     static func absolute(_ date: Date, now: Date = Date(), calendar: Calendar = .current) -> String {
         if calendar.isDate(date, inSameDayAs: now) {

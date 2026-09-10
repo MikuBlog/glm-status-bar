@@ -19,8 +19,9 @@ export DYLD_FRAMEWORK_PATH="$XCTFW"
 export DYLD_LIBRARY_PATH="$XCTLIB"
 
 SWIFT="$XCODE/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift"
+SCRATCH=".build-xcode-tests"
 
-"$SWIFT" build --build-tests \
+"$SWIFT" build --build-tests --scratch-path "$SCRATCH" \
     -Xswiftc -I"$XCTLIB" \
     -Xswiftc -F"$XCTFW" \
     -Xlinker -F -Xlinker "$XCTFW" \
@@ -28,5 +29,5 @@ SWIFT="$XCODE/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift"
     -Xlinker -L -Xlinker "$XCTLIB" \
     -Xlinker -lXCTestSwiftSupport
 
-BIN_DIR="$("$SWIFT" build --show-bin-path)"
+BIN_DIR="$("$SWIFT" build --scratch-path "$SCRATCH" --show-bin-path)"
 exec "$XCODE/usr/bin/xctest" -XCTest All "$BIN_DIR/GLMStatusBarPackageTests.xctest"

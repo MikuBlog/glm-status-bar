@@ -11,53 +11,103 @@ struct PanelView: View {
     }()
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            Divider().opacity(0.6)
-            content
-            Divider().opacity(0.6)
-            footer
+        ZStack {
+            Theme.panelBackground
+            VStack(spacing: 0) {
+                header
+                content
+                footer
+            }
+            .padding(.vertical, 10)
         }
-        .padding(.vertical, 4)
+        .preferredColorScheme(.dark)
     }
 
     // MARK: - Header
 
     private var header: some View {
         HStack(spacing: 10) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Theme.accentGradient)
+                    .frame(width: 30, height: 30)
+                    .shadow(color: Color.cyan.opacity(0.45), radius: 7)
+                Image(systemName: "gauge.with.needle")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+
             VStack(alignment: .leading, spacing: 2) {
-                Text("GLM Coding Plan")
-                    .font(.system(size: 13, weight: .semibold))
-                if let lastUpdated = model.lastUpdated {
-                    Text("更新于 \(Self.timeFormatter.string(from: lastUpdated)) · 每 \(Int(model.pollInterval)) 秒自动刷新")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text("每 \(Int(model.pollInterval)) 秒自动刷新")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    Text("GLM Coding Plan")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(Theme.textPrimary)
+                    if let badge = model.planLevelBadge {
+                        Text(badge)
+                            .font(.system(size: 8, weight: .heavy))
+                            .tracking(0.8)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(Capsule().fill(Theme.accentGradient))
+                    }
+                }
+                HStack(spacing: 4) {
+                    PulsingDot(color: statusColor)
+                    Text(headerSubtitle)
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(Theme.textTertiary)
+                        .monospacedDigit()
                 }
             }
+
             Spacer()
-            Button {
-                model.refreshNow()
-            } label: {
+
+            refreshButton
+        }
+        .padding(.horizontal, 14)
+        .padding(.bottom, 10)
+    }
+
+    private var headerSubtitle: String {
+        if let lastUpdated = model.lastUpdated {
+            return "实时 · \(Self.timeFormatter.string(from: lastUpdated)) · 每 \(Int(model.pollInterval))s"
+        }
+        return "每 \(Int(model.pollInterval)) 秒自动刷新"
+    }
+
+    private var statusColor: Color {
+        switch model.state {
+        case .ok: return .green
+        case .loading: return .blue
+        case .error: return .orange
+        case .loggedOut: return .gray
+        }
+    }
+
+    private var refreshButton: some View {
+        Button {
+            model.refreshNow()
+        } label: {
+            Hoverable { hovering in
                 Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(hovering ? Theme.textPrimary : Theme.textSecondary)
+                    .frame(width: 26, height: 26)
+                    .background(Circle().fill(Color.white.opacity(hovering ? 0.14 : 0.07)))
+                    .overlay(Circle().strokeBorder(Color.white.opacity(0.10)))
+                    .scaleEffect(hovering ? 1.05 : 1)
                     .rotationEffect(.degrees(model.isRefreshing ? 360 : 0))
                     .animation(
                         model.isRefreshing
                             ? .linear(duration: 0.8).repeatForever(autoreverses: false)
-                            : .default,
+                            : .spring(response: 0.25, dampingFraction: 0.7),
                         value: model.isRefreshing
                     )
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(.tint)
-            .help("立即刷新")
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .buttonStyle(.plain)
+        .help("立即刷新")
     }
 
     // MARK: - Content
@@ -78,61 +128,82 @@ struct PanelView: View {
 
     private var loggedOutView: some View {
         VStack(spacing: 14) {
-            Image(systemName: "lock.circle")
-                .font(.system(size: 38))
-                .foregroundStyle(.secondary)
-            Text(model.loginNotice ?? "尚未登录 BigModel 账号")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-            Button {
-                model.showLoginWindow()
-            } label: {
-                Label("登录 BigModel", systemImage: "person.crop.circle.badge.checkmark")
-                    .font(.callout.weight(.medium))
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 7)
-                    .background(Capsule().fill(.tint))
-                    .foregroundStyle(.white)
+            ZStack {
+                Circle()
+                    .fill(Color.white.opacity(0.06))
+                    .frame(width: 64, height: 64)
+                Image(systemName: "person.crop.circle")
+                    .font(.system(size: 30))
+                    .foregroundStyle(Theme.textTertiary)
             }
-            .buttonStyle(.plain)
+            Text(model.loginNotice ?? "尚未登录 BigModel 账号")
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.textSecondary)
+                .multilineTextAlignment(.center)
+            loginButton
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 30)
+        .padding(.vertical, 28)
         .frame(maxWidth: .infinity)
+    }
+
+    private var loginButton: some View {
+        Button {
+            model.showLoginWindow()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "person.crop.circle.badge.checkmark")
+                    .font(.system(size: 12, weight: .semibold))
+                Text("登录 BigModel")
+                    .font(.system(size: 12, weight: .semibold))
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 8)
+            .background(Capsule().fill(Theme.accentGradient))
+            .shadow(color: Color.blue.opacity(0.45), radius: 8)
+        }
+        .buttonStyle(.plain)
     }
 
     private var loadingView: some View {
         VStack(spacing: 12) {
             ProgressView()
                 .controlSize(.large)
+                .tint(.cyan)
             Text("正在获取额度…")
-                .font(.callout)
-                .foregroundStyle(.secondary)
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.textSecondary)
         }
-        .padding(.vertical, 34)
+        .padding(.vertical, 32)
         .frame(maxWidth: .infinity)
     }
 
     private func errorView(_ message: String) -> some View {
         VStack(spacing: 12) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 34))
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 28))
                 .foregroundStyle(.orange)
+                .shadow(color: .orange.opacity(0.5), radius: 8)
             Text(message)
-                .font(.callout)
-                .foregroundStyle(.secondary)
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.textSecondary)
                 .multilineTextAlignment(.center)
             Button {
                 model.refreshNow()
             } label: {
                 Label("重试", systemImage: "arrow.clockwise")
-                    .font(.callout.weight(.medium))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(Color.white.opacity(0.10)))
+                    .overlay(Capsule().strokeBorder(Color.white.opacity(0.12)))
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 26)
+        .padding(.vertical, 24)
         .frame(maxWidth: .infinity)
     }
 
@@ -140,7 +211,7 @@ struct PanelView: View {
         let limits = model.displayLimits
         let grid = LazyVGrid(
             columns: limits.count >= 3
-                ? [GridItem(.adaptive(minimum: 240), spacing: 10)]
+                ? [GridItem(.adaptive(minimum: 250), spacing: 10)]
                 : [GridItem(.flexible())],
             spacing: 10
         ) {
@@ -148,7 +219,7 @@ struct PanelView: View {
                 QuotaCard(limit: limit)
             }
         }
-        .padding(16)
+        .padding(.horizontal, 14)
 
         return Group {
             if limits.count > 3 {
@@ -166,27 +237,44 @@ struct PanelView: View {
     // MARK: - Footer
 
     private var footer: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 10) {
             Button {
                 NSWorkspace.shared.open(AppModel.overviewURL)
             } label: {
-                Label("打开网页版", systemImage: "globe")
+                Hoverable { hovering in
+                    Label("打开网页版", systemImage: "globe")
+                        .font(.system(size: 10, weight: .medium))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Capsule().fill(Color.white.opacity(hovering ? 0.10 : 0)))
+                }
             }
             .buttonStyle(.plain)
-            .foregroundStyle(.tint)
+            .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.00))
             .help("在浏览器中查看完整用量页面")
+
             Spacer()
+
+            Rectangle()
+                .fill(Color.white.opacity(0.10))
+                .frame(width: 1, height: 10)
+
             Button {
                 NSApp.terminate(nil)
             } label: {
-                Label("退出", systemImage: "power")
+                Hoverable { hovering in
+                    Label("退出", systemImage: "power")
+                        .font(.system(size: 10, weight: .medium))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Capsule().fill(Color.white.opacity(hovering ? 0.10 : 0)))
+                }
             }
             .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Theme.textTertiary)
             .help("退出应用")
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .font(.caption)
+        .padding(.top, 10)
     }
 }

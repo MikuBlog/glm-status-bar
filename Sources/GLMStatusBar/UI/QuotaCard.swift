@@ -6,72 +6,131 @@ struct QuotaCard: View {
     @State private var animatedPercentage: Double = 0
 
     private var percentage: Double { limit.effectivePercentage }
-    private var color: Color { QuotaFormat.color(for: percentage) }
+    private var gradient: LinearGradient { Theme.usageGradient(for: percentage) }
+    private var glow: Color { Theme.usageGlow(for: percentage) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(limit.displayTitle)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(.secondary)
-
-            HStack(alignment: .lastTextBaseline) {
-                Text(QuotaFormat.percentText(percentage))
-                    .font(.system(size: 32, weight: .heavy, design: .rounded))
-                    .foregroundStyle(color)
-                    .contentTransition(.numericText())
-                Text("% 已使用")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                Spacer()
+        VStack(alignment: .leading, spacing: 14) {
+            header
+            HStack(alignment: .center, spacing: 16) {
+                ring
+                stats
             }
-
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(.quinary)
-                    Capsule()
-                        .fill(color)
-                        .frame(width: max(4, geo.size.width * animatedPercentage / 100))
-                }
-            }
-            .frame(height: 6)
-
-            HStack(alignment: .firstTextBaseline) {
-                Text("积分 \(QuotaFormat.used(limit.usage)) / \(QuotaFormat.total(limit.currentValue))")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                Spacer()
-                resetText
-            }
+            resetFooter
         }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(.background.opacity(0.72))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(.quinary)
-        )
-        .onAppear {
-            animatedPercentage = percentage
-        }
+        .padding(16)
+        .background(Theme.cardShape().fill(Theme.cardFill))
+        .overlay(Theme.cardShape().strokeBorder(Theme.cardBorder))
+        .onAppear { animatedPercentage = percentage }
         .onChange(of: percentage) { _, newValue in
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                 animatedPercentage = newValue
             }
         }
     }
 
+    // MARK: - Header
+
+    private var header: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "bolt.horizontal.fill")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(gradient)
+            Text(limit.displayTitle)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Theme.textPrimary)
+            Spacer()
+            Text("\(QuotaFormat.percentText(percentage))% 已使用")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(Theme.textSecondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(Capsule().fill(Color.white.opacity(0.07)))
+                .overlay(Capsule().strokeBorder(Color.white.opacity(0.08)))
+        }
+    }
+
+    // MARK: - Progress ring
+
+    private var ring: some View {
+        ZStack {
+            Circle()
+                .stroke(Color.white.opacity(0.09), lineWidth: 8)
+            Circle()
+                .trim(from: 0, to: max(0.02, animatedPercentage / 100))
+                .stroke(gradient, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .shadow(color: glow.opacity(0.75), radius: 7)
+                .shadow(color: glow.opacity(0.35), radius: 14)
+            VStack(spacing: 0) {
+                Text(QuotaFormat.percentText(animatedPercentage))
+                    .font(.system(size: 19, weight: .heavy, design: .rounded))
+                    .foregroundStyle(Theme.textPrimary)
+                    .contentTransition(.numericText())
+                    .monospacedDigit()
+                Text("%")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(Theme.textTertiary)
+            }
+        }
+        .frame(width: 76, height: 76)
+    }
+
+    // MARK: - Stats
+
+    private var stats: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            statRow(label: "已用", value: QuotaFormat.used(limit.usedCredits), prominent: true, unit: "积分")
+            statRow(label: "总额", value: QuotaFormat.total(limit.totalCredits))
+            if let remaining = limit.remaining {
+                statRow(label: "剩余", value: QuotaFormat.total(remaining))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func statRow(label: String, value: String, prominent: Bool = false, unit: String? = nil) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(Theme.textTertiary)
+                .frame(width: 26, alignment: .leading)
+            Text(value)
+                .font(.system(size: prominent ? 15 : 12,
+                              weight: prominent ? .bold : .semibold,
+                              design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(prominent ? Theme.textPrimary : Theme.textSecondary)
+            if let unit {
+                Text(unit)
+                    .font(.system(size: 8, weight: .medium))
+                    .foregroundStyle(Theme.textTertiary)
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    // MARK: - Reset footer
+
+    private var resetFooter: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "clock.arrow.circlepath")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(Theme.textTertiary)
+            resetText
+            Spacer(minLength: 0)
+        }
+        .padding(.top, 2)
+    }
+
     @ViewBuilder
     private var resetText: some View {
-        if let date = ResetTime.parse(limit.nextResetTime) {
+        if let epoch = limit.nextResetTime {
+            let date = ResetTime.parse(epochMilliseconds: epoch)
             Text("\(ResetTime.absolute(date)) · \(ResetTime.relative(date))")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-        } else if let raw = limit.nextResetTime, !raw.isEmpty {
-            Text("\(raw) 重置")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 10, weight: .medium))
+                .monospacedDigit()
+                .foregroundStyle(Theme.textTertiary)
         }
     }
 }
