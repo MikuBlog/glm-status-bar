@@ -39,9 +39,8 @@ final class LoginWindowController: NSWindowController, WKNavigationDelegate, NSW
     required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
 
     func open() {
-        if webView?.url == nil {
-            webView?.load(URLRequest(url: Self.loginURL))
-        }
+        // Always reload: a stale page would still show the previous session.
+        webView?.load(URLRequest(url: Self.loginURL))
         window?.center()
         showWindow(nil)
         window?.makeKeyAndOrderFront(nil)

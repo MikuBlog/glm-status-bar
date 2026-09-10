@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import WebKit
 
 @MainActor
 final class AppModel: ObservableObject {
@@ -216,8 +217,22 @@ final class AppModel: ObservableObject {
         TokenStore.clear()
         token = nil
         timer?.invalidate()
-        loginNotice = nil
+        loginController?.close()
+        loginController = nil
+        loginNotice = "已退出登录，可重新登录或切换账号"
         state = .loggedOut
+        clearWebSession()
+    }
+
+    /// Clear the WKWebView session so the next login shows a fresh login page
+    /// instead of silently re-using the previous account's cookie.
+    private func clearWebSession() {
+        let store = WKWebsiteDataStore.default()
+        store.removeData(
+            ofTypes: [WKWebsiteDataTypeCookies, WKWebsiteDataTypeLocalStorage,
+                      WKWebsiteDataTypeSessionStorage],
+            modifiedSince: .distantPast
+        ) {}
     }
 
     private func handleLoginToken(_ raw: String) {
