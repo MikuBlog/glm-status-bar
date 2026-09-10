@@ -10,6 +10,7 @@ macOS 菜单栏应用，实时展示 [GLM Coding Plan](https://bigmodel.cn/codin
 - **下拉面板**：每张额度卡片显示大号百分比、已用/总积分（对齐网页端「2,140 / 2.8万」格式）、动画进度条、重置时间与倒计时
 - **内置登录**：App 内打开 bigmodel.cn 登录页，登录后自动提取凭证（无需手动复制 token）
 - **凭证缓存**：token 存于 App 本地缓存（UserDefaults），重启免登录；过期自动弹出重新登录
+- **开机自启**：面板底栏开关，基于 SMAppService 注册登录项
 - **最新 macOS**：原生 SwiftUI `MenuBarExtra`，兼容 macOS 15 – 26（Tahoe）
 
 ## 数据来源

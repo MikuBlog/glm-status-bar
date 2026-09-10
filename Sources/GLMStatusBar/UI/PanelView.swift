@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PanelView: View {
     @EnvironmentObject private var model: AppModel
+    @State private var launchAtLogin = false
 
     private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -21,6 +22,7 @@ struct PanelView: View {
             .padding(.vertical, 10)
         }
         .preferredColorScheme(.dark)
+        .onAppear { launchAtLogin = LaunchAtLoginManager.isEnabled }
     }
 
     // MARK: - Header
@@ -238,6 +240,10 @@ struct PanelView: View {
 
     private var footer: some View {
         HStack(spacing: 10) {
+            launchAtLoginToggle
+
+            Spacer()
+
             Button {
                 NSWorkspace.shared.open(AppModel.overviewURL)
             } label: {
@@ -276,5 +282,24 @@ struct PanelView: View {
         }
         .padding(.horizontal, 16)
         .padding(.top, 10)
+    }
+
+    private var launchAtLoginToggle: some View {
+        HStack(spacing: 6) {
+            Toggle("", isOn: $launchAtLogin)
+                .toggleStyle(.switch)
+                .controlSize(.mini)
+                .labelsHidden()
+                .onChange(of: launchAtLogin) { _, newValue in
+                    if !LaunchAtLoginManager.setEnabled(newValue) {
+                        // System rejected the change — reflect reality back.
+                        launchAtLogin = LaunchAtLoginManager.isEnabled
+                    }
+                }
+            Text("开机自启")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(Theme.textSecondary)
+        }
+        .help("登录 Mac 后自动启动 GLM StatusBar")
     }
 }
