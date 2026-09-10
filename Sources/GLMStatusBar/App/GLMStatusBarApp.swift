@@ -14,6 +14,7 @@ struct GLMStatusBarApp: App {
 
     init() {
         PanelSnapshot.maybeRunSnapshotMode()
+        SingleInstanceGuard.ensureSingleInstance()
     }
 
     var body: some Scene {

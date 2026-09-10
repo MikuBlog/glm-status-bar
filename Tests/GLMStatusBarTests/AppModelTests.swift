@@ -89,4 +89,10 @@ final class TokenStoreTests: XCTestCase {
     func testNormalizeJSONWithoutTokenField() {
         XCTAssertNil(TokenStore.normalize(#"{"foo":1}"#))
     }
+
+    func testNormalizeCookiePercentEncoded() {
+        XCTAssertEqual(TokenStore.normalizeCookie("tok%2B123"), "tok+123")
+        XCTAssertEqual(TokenStore.normalizeCookie("plain-token"), "plain-token")
+        XCTAssertEqual(TokenStore.normalizeCookie(""), nil)
+    }
 }

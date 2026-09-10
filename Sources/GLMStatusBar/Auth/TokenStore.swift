@@ -35,4 +35,10 @@ enum TokenStore {
         }
         return value
     }
+
+    /// Cookie values may arrive percent-encoded; decode before normalizing.
+    static func normalizeCookie(_ raw: String) -> String? {
+        let decoded = raw.removingPercentEncoding ?? raw
+        return normalize(decoded)
+    }
 }

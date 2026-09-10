@@ -5,6 +5,7 @@ import WebKit
 final class LoginWindowController: NSWindowController, WKNavigationDelegate, NSWindowDelegate {
     static let loginURL = URL(string: "https://bigmodel.cn/coding-plan/personal/overview")!
     private static let tokenJS = "localStorage.getItem('bigmodel_token_production') || ''"
+    private static let tokenCookieName = "bigmodel_token_production"
 
     private var webView: WKWebView?
     private var pollTimer: Timer?
@@ -66,6 +67,15 @@ final class LoginWindowController: NSWindowController, WKNavigationDelegate, NSW
         webView?.evaluateJavaScript(Self.tokenJS) { [weak self] result, _ in
             guard let raw = result as? String else { return }
             self?.accept(raw)
+        }
+        // The web app's axios interceptor reads the Authorization token from the
+        // `bigmodel_token_production` cookie (domain .bigmodel.cn), not only from
+        // localStorage — so poll the shared WKWebView cookie store as well.
+        webView?.configuration.websiteDataStore.httpCookieStore.getAllCookies { [weak self] cookies in
+            guard let cookie = cookies.first(where: {
+                $0.name == Self.tokenCookieName && $0.domain.contains("bigmodel.cn")
+            }) else { return }
+            self?.accept(cookie.value)
         }
     }
 
