@@ -1,9 +1,10 @@
 import AppKit
 import Foundation
-import SwiftUI
 
 @MainActor
 final class AppModel: ObservableObject {
+    static let shared = AppModel()
+
     enum State: Equatable {
         case loggedOut
         case loading
@@ -187,15 +188,6 @@ final class AppModel: ObservableObject {
 
     var menuBarPercentage: Double {
         barLimits.map(\.effectivePercentage).max() ?? 0
-    }
-
-    var menuBarForeground: Color {
-        switch state {
-        case .loggedOut: return .gray
-        case .loading: return .primary
-        case .error: return .orange
-        case .ok: return QuotaFormat.color(for: menuBarPercentage)
-        }
     }
 
     // MARK: - Login

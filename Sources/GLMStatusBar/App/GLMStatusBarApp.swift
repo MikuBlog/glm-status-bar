@@ -1,16 +1,19 @@
 import SwiftUI
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private var statusItemController: StatusItemController?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Menu-bar-only app: no Dock icon, no main window.
         NSApp.setActivationPolicy(.accessory)
+        statusItemController = StatusItemController(model: .shared)
     }
 }
 
 @main
 struct GLMStatusBarApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @StateObject private var model = AppModel()
+    @StateObject private var model = AppModel.shared
 
     init() {
         PanelSnapshot.maybeRunSnapshotMode()
@@ -18,18 +21,9 @@ struct GLMStatusBarApp: App {
     }
 
     var body: some Scene {
-        MenuBarExtra {
-            PanelView()
-                .environmentObject(model)
-                .frame(width: 360)
-        } label: {
-            HStack(spacing: 4) {
-                Image(systemName: "gauge.with.needle")
-                Text(model.menuBarText)
-                    .monospacedDigit()
-            }
-            .foregroundStyle(model.menuBarForeground)
+        // The real UI lives in the NSStatusItem popover (see StatusItemController).
+        Settings {
+            EmptyView()
         }
-        .menuBarExtraStyle(.window)
     }
 }
