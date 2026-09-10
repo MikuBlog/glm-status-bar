@@ -14,6 +14,8 @@ final class StatusItemController: NSObject {
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
     private var cancellable: AnyCancellable?
+    private var globalMonitor: Any?
+    private var localMonitor: Any?
 
     init(model: AppModel) {
         self.model = model
@@ -32,8 +34,39 @@ final class StatusItemController: NSObject {
     private func setupStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.button?.target = self
-        item.button?.action = #selector(togglePopover(_:))
+        item.button?.action = #selector(handleStatusClick(_:))
+        item.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         statusItem = item
+    }
+
+    /// Click anywhere outside the panel (other apps, desktop, menu bar)
+    /// dismisses it. `.transient` covers most cases; these monitors make it
+    /// airtight across macOS event-delivery quirks.
+    private func startDismissMonitoring() {
+        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+            Task { @MainActor in
+                self?.closePopoverIfNeeded()
+            }
+        }
+        localMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            Task { @MainActor in
+                guard let self,
+                      let popover = self.popover, popover.isShown else { return }
+                // Let clicks inside the popover panel pass through untouched;
+                // clicks on the status icon are handled by its own action.
+                if event.window === popover.contentViewController?.view.window { return }
+                if let button = self.statusItem?.button,
+                   event.window === button.window,
+                   button.frame.contains(event.locationInWindow) { return }
+                self.closePopoverIfNeeded()
+            }
+            return event
+        }
+    }
+
+    private func closePopoverIfNeeded() {
+        guard let popover, popover.isShown else { return }
+        popover.performClose(nil)
     }
 
     private func renderBadge() {
@@ -49,7 +82,12 @@ final class StatusItemController: NSObject {
 
     // MARK: - Popover
 
-    @objc private func togglePopover(_ sender: NSStatusBarButton) {
+    /// Left-click toggles the panel; right-click quits the app.
+    @objc private func handleStatusClick(_ sender: NSStatusBarButton) {
+        if NSApp.currentEvent?.type == .rightMouseUp {
+            NSApp.terminate(nil)
+            return
+        }
         if let popover, popover.isShown {
             popover.performClose(nil)
         } else {
@@ -60,6 +98,7 @@ final class StatusItemController: NSObject {
     private func showPopover(relativeTo sender: NSView) {
         let popover = popover ?? makePopover()
         self.popover = popover
+        if globalMonitor == nil { startDismissMonitoring() }
         popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .minY)
         NSApp.activate(ignoringOtherApps: true)
     }
