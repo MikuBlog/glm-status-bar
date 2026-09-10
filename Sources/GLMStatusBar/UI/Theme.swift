@@ -103,6 +103,12 @@ struct PulsingDot: View {
                 pulsing = true
             }
         }
+        .onDisappear {
+            // Stop the infinite animation when the panel is closed.
+            var t = Transaction()
+            t.disablesAnimations = true
+            withTransaction(t) { pulsing = false }
+        }
     }
 }
 

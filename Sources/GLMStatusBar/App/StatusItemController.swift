@@ -9,19 +9,20 @@ import SwiftUI
 /// `NSStatusItem` + `ImageRenderer` instead, and present the panel in an
 /// `NSPopover`.
 @MainActor
-final class StatusItemController: NSObject, NSMenuDelegate {
+final class StatusItemController: NSObject, NSMenuDelegate, NSPopoverDelegate {
     private let model: AppModel
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
     private var cancellable: AnyCancellable?
     private var globalMonitor: Any?
     private var localMonitor: Any?
+    private var lastBadgeKey: String?
 
     init(model: AppModel) {
         self.model = model
         super.init()
         setupStatusItem()
-        renderBadge()
+        renderBadge(force: true)
         cancellable = model.objectWillChange.sink { [weak self] _ in
             Task { @MainActor in
                 self?.renderBadge()
@@ -70,6 +71,12 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
 
     private func renderBadge() {
+        // Only re-render when the visible content changes (state, text, or
+        // color level) — avoids needless SwiftUI/ImageRenderer work on every
+        // 3-second poll.
+        let key = "\(model.stateKind)-\(model.menuBarText)-\(QuotaFormat.level(for: model.menuBarPercentage))"
+        guard key != lastBadgeKey else { return }
+        lastBadgeKey = key
         guard let button = statusItem?.button else { return }
         let scale = NSScreen.main?.backingScaleFactor ?? 2
         let renderer = ImageRenderer(content: MenuBarBadge(model: model))
@@ -78,6 +85,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         image.isTemplate = false // keep the gradient colors
         button.image = image
         button.imagePosition = .imageOnly
+    }
+
+    private func renderBadge(force: Bool) {
+        if force { lastBadgeKey = nil }
+        renderBadge()
     }
 
     // MARK: - Popover
@@ -148,8 +160,13 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
 
     private func showPopover(relativeTo sender: NSView) {
-        let popover = popover ?? makePopover()
+        closePopoverIfNeeded()
+        // Fresh popover per open: releasing the hosting controller when closed
+        // tears down the SwiftUI view tree, stopping all animations instead of
+        // letting repeatForever effects burn CPU while hidden.
+        let popover = makePopover()
         self.popover = popover
+        popover.delegate = self
         if globalMonitor == nil { startDismissMonitoring() }
         popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .minY)
         NSApp.activate(ignoringOtherApps: true)
@@ -169,5 +186,12 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         popover.appearance = NSAppearance(named: .vibrantDark)
         popover.contentViewController = hosting
         return popover
+    }
+
+    // MARK: - NSPopoverDelegate
+
+    func popoverDidClose(_ notification: Notification) {
+        popover?.contentViewController = nil
+        popover = nil
     }
 }

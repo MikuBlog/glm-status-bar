@@ -18,6 +18,16 @@ final class AppModel: ObservableObject {
         case authFailure
     }
 
+    /// Coarse state kind used for cheap change detection.
+    var stateKind: String {
+        switch state {
+        case .loggedOut: return "loggedOut"
+        case .loading: return "loading"
+        case .ok: return "ok"
+        case .error: return "error"
+        }
+    }
+
     static let apiURL = URL(string: "https://bigmodel.cn/api/monitor/usage/quota/limit")!
     static let overviewURL = URL(string: "https://bigmodel.cn/coding-plan/personal/overview")!
     static let userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15"
