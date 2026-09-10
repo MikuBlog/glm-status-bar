@@ -201,6 +201,15 @@ final class AppModel: ObservableObject {
         loginController?.open()
     }
 
+    /// Log out of the BigModel account (keeps the app running).
+    func logout() {
+        TokenStore.clear()
+        token = nil
+        timer?.invalidate()
+        loginNotice = nil
+        state = .loggedOut
+    }
+
     private func handleLoginToken(_ raw: String) {
         guard let normalized = TokenStore.normalize(raw) else { return }
         token = normalized

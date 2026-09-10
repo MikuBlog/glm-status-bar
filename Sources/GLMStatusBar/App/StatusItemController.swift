@@ -9,7 +9,7 @@ import SwiftUI
 /// `NSStatusItem` + `ImageRenderer` instead, and present the panel in an
 /// `NSPopover`.
 @MainActor
-final class StatusItemController: NSObject {
+final class StatusItemController: NSObject, NSMenuDelegate {
     private let model: AppModel
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
@@ -82,10 +82,10 @@ final class StatusItemController: NSObject {
 
     // MARK: - Popover
 
-    /// Left-click toggles the panel; right-click quits the app.
+    /// Left-click toggles the panel; right-click opens a context menu.
     @objc private func handleStatusClick(_ sender: NSStatusBarButton) {
         if NSApp.currentEvent?.type == .rightMouseUp {
-            NSApp.terminate(nil)
+            showContextMenu(for: sender)
             return
         }
         if let popover, popover.isShown {
@@ -93,6 +93,58 @@ final class StatusItemController: NSObject {
         } else {
             showPopover(relativeTo: sender)
         }
+    }
+
+    // MARK: - Right-click context menu
+
+    private func showContextMenu(for button: NSStatusBarButton) {
+        closePopoverIfNeeded()
+
+        let menu = NSMenu()
+        menu.delegate = self
+
+        let refresh = NSMenuItem(title: "立即刷新", action: #selector(refreshAction), keyEquivalent: "r")
+        refresh.target = self
+        menu.addItem(refresh)
+
+        let web = NSMenuItem(title: "打开网页版", action: #selector(openWebAction), keyEquivalent: "")
+        web.target = self
+        menu.addItem(web)
+
+        menu.addItem(.separator())
+
+        let logout = NSMenuItem(title: "退出登录 / 切换账号", action: #selector(logoutAction), keyEquivalent: "")
+        logout.target = self
+        menu.addItem(logout)
+
+        let quit = NSMenuItem(title: "退出 GLM StatusBar", action: #selector(quitAction), keyEquivalent: "q")
+        quit.target = self
+        menu.addItem(quit)
+
+        // Present the menu anchored to the status item.
+        statusItem?.menu = menu
+        button.performClick(nil)
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        // Restore normal button behavior after the menu dismisses.
+        statusItem?.menu = nil
+    }
+
+    @objc private func refreshAction() {
+        model.refreshNow()
+    }
+
+    @objc private func openWebAction() {
+        NSWorkspace.shared.open(AppModel.overviewURL)
+    }
+
+    @objc private func logoutAction() {
+        model.logout()
+    }
+
+    @objc private func quitAction() {
+        NSApp.terminate(nil)
     }
 
     private func showPopover(relativeTo sender: NSView) {
