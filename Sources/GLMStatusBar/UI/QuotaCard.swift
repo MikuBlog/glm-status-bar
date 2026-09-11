@@ -12,7 +12,7 @@ struct QuotaCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             header
-            HStack(alignment: .center, spacing: 12) {
+            HStack(alignment: .center, spacing: 14) {
                 ring
                 stats
             }
@@ -34,10 +34,10 @@ struct QuotaCard: View {
     private var header: some View {
         HStack(spacing: 8) {
             Image(systemName: "bolt.horizontal.fill")
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 12.5, weight: .semibold))
                 .foregroundStyle(gradient)
             Text(limit.displayTitle)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 14.5, weight: .semibold))
                 .foregroundStyle(Theme.textPrimary)
             Spacer()
             Text("\(QuotaFormat.percentText(percentage))% 已使用")
@@ -64,12 +64,12 @@ struct QuotaCard: View {
                 .shadow(color: glow.opacity(0.35), radius: 14)
             VStack(spacing: 0) {
                 Text(QuotaFormat.percentText(animatedPercentage))
-                    .font(.system(size: 14, weight: .heavy, design: .rounded))
+                    .font(.system(size: 17, weight: .heavy, design: .rounded))
                     .foregroundStyle(Theme.textPrimary)
                     .contentTransition(.numericText())
                     .monospacedDigit()
                 Text("%")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(Theme.textTertiary)
             }
         }
@@ -83,19 +83,19 @@ struct QuotaCard: View {
             statRow(label: "已用积分", value: QuotaFormat.used(limit.usedCredits), prominent: true)
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text("总额")
-                    .font(.system(size: 9, weight: .medium))
+                    .font(.system(size: 10.5, weight: .medium))
                     .foregroundStyle(Theme.textTertiary)
                 Text(QuotaFormat.total(limit.totalCredits))
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .font(.system(size: 12.5, weight: .semibold, design: .rounded))
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
                     .foregroundStyle(Theme.textSecondary)
                 Text("· 剩余")
-                    .font(.system(size: 9, weight: .medium))
+                    .font(.system(size: 10.5, weight: .medium))
                     .foregroundStyle(Theme.textTertiary)
                 Text(QuotaFormat.total(limit.remaining))
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .font(.system(size: 12.5, weight: .semibold, design: .rounded))
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
@@ -108,10 +108,10 @@ struct QuotaCard: View {
     private func statRow(label: String, value: String, prominent: Bool = false) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 4) {
             Text(label)
-                .font(.system(size: 9, weight: .medium))
+                .font(.system(size: 10.5, weight: .medium))
                 .foregroundStyle(Theme.textTertiary)
             Text(value)
-                .font(.system(size: prominent ? 13 : 11,
+                .font(.system(size: prominent ? 15 : 12,
                               weight: prominent ? .bold : .semibold,
                               design: .rounded))
                 .monospacedDigit()
@@ -127,7 +127,7 @@ struct QuotaCard: View {
     private var resetFooter: some View {
         HStack(spacing: 6) {
             Image(systemName: "clock.arrow.circlepath")
-                .font(.system(size: 10, weight: .medium))
+                .font(.system(size: 10.5, weight: .medium))
                 .foregroundStyle(Theme.textTertiary)
             resetText
             Spacer(minLength: 0)
@@ -140,7 +140,7 @@ struct QuotaCard: View {
         if let epoch = limit.nextResetTime {
             let date = ResetTime.parse(epochMilliseconds: epoch)
             Text("\(ResetTime.absolute(date)) · \(ResetTime.relative(date))")
-                .font(.system(size: 10, weight: .medium))
+                .font(.system(size: 10.5, weight: .medium))
                 .monospacedDigit()
                 .foregroundStyle(Theme.textTertiary)
         }

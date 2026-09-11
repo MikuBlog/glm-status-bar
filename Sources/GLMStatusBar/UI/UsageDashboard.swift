@@ -7,13 +7,13 @@ struct UsageDashboardView: View {
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        VStack(spacing: 7) {
+        VStack(spacing: 10) {
             RangeSegmented(selection: $model.selectedRange, statsForCaption: stats)
 
             if let stats = stats {
                 KpiRow(stats: stats)
                 UsageTrendCard(stats: stats)
-                HStack(alignment: .top, spacing: 8) {
+                HStack(alignment: .top, spacing: 10) {
                     ModelsCard(stats: stats)
                     ToolsCard(stats: stats)
                     MiscCard(stats: stats)
@@ -56,7 +56,7 @@ struct RangeSegmented: View {
             ForEach(UsageRange.allCases) { range in
                 let selected = selection == range
                 Text(range.label)
-                    .font(.system(size: 10, weight: selected ? .semibold : .regular))
+                    .font(.system(size: 12, weight: selected ? .semibold : .regular))
                     .foregroundStyle(selected ? .white : Theme.textSecondary)
                     .padding(.horizontal, 11)
                     .padding(.vertical, 3)
@@ -141,11 +141,11 @@ struct KpiChip: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
-                .font(.system(size: 9, weight: .medium))
+                .font(.system(size: 10.5, weight: .medium))
                 .foregroundStyle(Theme.textTertiary)
             HStack(alignment: .firstTextBaseline, spacing: 3) {
                 Text(value)
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.55)
@@ -154,9 +154,9 @@ struct KpiChip: View {
                 if let trend {
                     HStack(spacing: 1) {
                         Image(systemName: trend.up ? "arrow.up.right" : "arrow.down.right")
-                            .font(.system(size: 7, weight: .black))
+                            .font(.system(size: 8, weight: .black))
                         Text(trend.text)
-                            .font(.system(size: 8, weight: .semibold))
+                            .font(.system(size: 9.5, weight: .semibold))
                             .monospacedDigit()
                     }
                     .foregroundStyle((trend.up != invertTrendColor) ? Color.orange : Color.green)
@@ -164,7 +164,7 @@ struct KpiChip: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(8)
+        .padding(11)
         .dashboardCard()
     }
 }
@@ -186,11 +186,11 @@ struct UsageTrendCard: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text("积分消耗趋势")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 12.5, weight: .semibold))
                     .foregroundStyle(Theme.textPrimary)
                 Spacer()
                 Text(stats.range.label)
-                    .font(.system(size: 8, weight: .semibold))
+                    .font(.system(size: 9.5, weight: .semibold))
                     .padding(.horizontal, 5)
                     .padding(.vertical, 1.5)
                     .background(Capsule().fill(Color.white.opacity(0.07)))
@@ -231,7 +231,7 @@ struct UsageTrendCard: View {
                         AxisValueLabel {
                             if let number = value.as(Double.self) {
                                 Text(QuotaFormat.bigCount(number))
-                                    .font(.system(size: 7.5))
+                                    .font(.system(size: 8.5))
                                     .foregroundStyle(Theme.textTertiary)
                             }
                         }
@@ -243,13 +243,13 @@ struct UsageTrendCard: View {
                         AxisValueLabel {
                             if let date = value.as(Date.self) {
                                 Text(date, format: .dateTime.day().month().hour().minute())
-                                    .font(.system(size: 7.5))
+                                    .font(.system(size: 8.5))
                                     .foregroundStyle(Theme.textTertiary)
                             }
                         }
                     }
                 }
-                .frame(height: 64)
+                .frame(height: 96)
             }
         }
         .dashboardCard()
@@ -274,7 +274,7 @@ struct ModelsCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("模型排行")
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 12.5, weight: .semibold))
                 .foregroundStyle(Theme.textPrimary)
 
             if models.isEmpty {
@@ -302,12 +302,12 @@ struct ModelUsageRow: View {
         VStack(alignment: .leading, spacing: 3) {
             HStack(alignment: .firstTextBaseline) {
                 Text(model.displayName)
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(1)
                 Spacer(minLength: 6)
                 Text("\(QuotaFormat.bigCount(model.totalTokens)) tokens")
-                    .font(.system(size: 9, weight: .medium))
+                    .font(.system(size: 10.5, weight: .medium))
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
@@ -322,10 +322,10 @@ struct ModelUsageRow: View {
                             .frame(width: max(3, geo.size.width * share))
                     }
                 }
-                .frame(height: 4)
+                .frame(height: 5)
 
                 Text("积分 \(QuotaFormat.credits(model.totalCredits))")
-                    .font(.system(size: 9, weight: .semibold))
+                    .font(.system(size: 10.5, weight: .semibold))
                     .monospacedDigit()
                     .foregroundStyle(Theme.textSecondary)
                     .fixedSize()
@@ -352,7 +352,7 @@ struct ToolsCard: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("\(QuotaFormat.used(mcpUsage?.totalUsage?.totalMcpCalls)) 次")
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(Theme.textPrimary)
                 Text("调用 \(QuotaFormat.credits(mcpUsage?.totalUsage?.totalCredits)) 积分")
@@ -391,9 +391,9 @@ struct MiscCard: View {
     let stats: RangeUsageStats
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             Text("其他指标")
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 12.5, weight: .semibold))
                 .foregroundStyle(Theme.textPrimary)
 
             miscRow(
@@ -434,7 +434,7 @@ struct MiscCard: View {
 extension View {
     func dashboardCard() -> some View {
         self
-            .padding(9)
+            .padding(12)
             .background(Theme.cardShape(radius: 14).fill(Theme.cardFill))
             .overlay(Theme.cardShape(radius: 14).strokeBorder(Theme.cardBorder))
     }
