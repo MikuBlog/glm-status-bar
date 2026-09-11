@@ -1,6 +1,7 @@
 .build/
 .build-clt/
 .build-xcode-tests/
+.build-xcode/
 *.app/
 .DS_Store
 DerivedData/
