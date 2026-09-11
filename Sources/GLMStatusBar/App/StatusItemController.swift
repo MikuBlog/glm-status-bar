@@ -194,7 +194,7 @@ final class StatusItemController: NSObject, NSMenuDelegate, NSPopoverDelegate {
         let hosting = NSHostingController(
             rootView: PanelView()
                 .environmentObject(model)
-                .frame(width: 360)
+                .frame(width: 380)
         )
         hosting.sizingOptions = .preferredContentSize
 

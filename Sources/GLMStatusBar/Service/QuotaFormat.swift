@@ -56,6 +56,43 @@ enum QuotaFormat {
     static func rateText(_ fraction: Double) -> String {
         String(format: "%.1f%%", fraction * 100)
     }
+
+    /// Credits with thousand grouping and up to 2 decimals, e.g. 2232.5331 -> "2,232.53"
+    static func credits(_ value: Double?) -> String {
+        guard let value else { return "--" }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.maximumFractionDigits = 2
+        return formatter.string(from: NSNumber(value: value)) ?? String(value)
+    }
+
+    /// Big counts: 41658694 -> "4,165.9万", 1.2e8 -> "1.2亿", small -> grouping.
+    static func bigCount(_ value: Double?) -> String {
+        guard let value else { return "--" }
+        if value >= 1e8 {
+            return trimmed(value / 1e8, decimals: 1) + "亿"
+        }
+        if value >= 1e4 {
+            return trimmed(value / 1e4, decimals: 1) + "万"
+        }
+        return used(value)
+    }
+
+    private static func trimmed(_ v: Double, decimals: Int) -> String {
+        let s = String(format: "%.\(decimals)f", v)
+        var t = s
+        while t.hasSuffix("0") { t.removeLast() }
+        if t.hasSuffix(".") { t.removeLast() }
+        return t
+    }
+
+    /// Trend pair: text like "+12.3%" / "-12.3%" and direction (up = worse for costs).
+    static func trend(_ fraction: Double?) -> (text: String, up: Bool)? {
+        guard let f = fraction else { return nil }
+        let pct = f * 100
+        guard abs(pct) >= 0.05 else { return ("0%", false) }
+        return (String(format: "%@%.1f%%", pct > 0 ? "+" : "-", abs(pct)), pct > 0)
+    }
 }
 
 enum ResetTime {

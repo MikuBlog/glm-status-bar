@@ -30,35 +30,45 @@ final class AppModel: ObservableObject {
     }
 
     static let apiURL = URL(string: "https://bigmodel.cn/api/monitor/usage/quota/limit")!
-    static let cacheHitURL = URL(string: "https://bigmodel.cn/api/monitor/credit-usage/usage-detail")!
+    static let usageDetailURL = URL(string: "https://bigmodel.cn/api/monitor/credit-usage/usage-detail")!
     static let overviewURL = URL(string: "https://bigmodel.cn/coding-plan/personal/overview")!
     static let userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15"
 
     /// Auto refresh cadence (per product requirement: every 3 seconds).
     let pollInterval: TimeInterval = 3
-    /// Cache hit rates move slowly — refresh them on a slower cadence.
-    let cachePollInterval: TimeInterval = 15
+    /// Usage stats move slowly — refresh the selected range on this cadence.
+    let usagePollInterval: TimeInterval = 60
 
     @Published private(set) var state: State
     @Published private(set) var isRefreshing = false
     @Published private(set) var lastUpdated: Date?
-    @Published private(set) var cacheRates: CacheRates?
+    @Published var selectedRange: UsageRange = .today {
+        didSet {
+            guard oldValue != selectedRange else { return }
+            fetchUsageStatsIfNeeded(force: false)
+        }
+    }
+    @Published private(set) var usageStats: [UsageRange: RangeUsageStats] = [:]
     /// Shown on the logged-out panel, e.g. "凭证已过期，请重新登录".
     @Published var loginNotice: String?
 
     private var token: String?
     private var timer: Timer?
-    private var cacheTimer: Timer?
+    private var usageTimer: Timer?
     private var inFlight = false
-    private var cacheInFlight = false
+    private var usageInFlight: Set<UsageRange> = []
     private var loginController: LoginWindowController?
 
     /// Developer/UI-snapshot only: inject a state without touching the network.
-    func overrideForSnapshot(_ newState: State, cacheRates: CacheRates? = nil) {
+    func overrideForSnapshot(
+        _ newState: State,
+        usageStats: [UsageRange: RangeUsageStats] = [:]
+    ) {
         token = nil
         timer?.invalidate()
         state = newState
-        self.cacheRates = cacheRates
+        usageTimer?.invalidate()
+        self.usageStats = usageStats
         if case .ok = newState { lastUpdated = Date() }
     }
 
@@ -78,56 +88,71 @@ final class AppModel: ObservableObject {
         state = .loading
         fetch()
         restartTimer()
-        fetchCacheRates()
-        restartCacheTimer()
+        fetchUsageStatsIfNeeded(force: true)
+        restartUsageTimer()
     }
 
     func refreshNow() {
         fetch()
         restartTimer()
-        // Cache rates are on their own slower cadence; no need to refresh here.
+        fetchUsageStatsIfNeeded(force: true)
     }
 
-    private func restartCacheTimer() {
-        cacheTimer?.invalidate()
-        cacheTimer = Timer.scheduledTimer(withTimeInterval: cachePollInterval, repeats: true) { [weak self] _ in
+    private func restartUsageTimer() {
+        usageTimer?.invalidate()
+        usageTimer = Timer.scheduledTimer(withTimeInterval: usagePollInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                self?.fetchCacheRates()
+                self?.fetchUsageStatsIfNeeded(force: false)
             }
         }
     }
 
-    /// Serial fetch of today's and the trailing-7-day cache hit rates, then a
-    /// single @Published update.
-    private func fetchCacheRates() {
-        guard !cacheInFlight else { return }
-        guard let token else { return }
-        cacheInFlight = true
-
-        let calendar = Calendar.current
-        let dayStart = calendar.startOfDay(for: Date())
-        let dayEnd = calendar.date(byAdding: DateComponents(day: 1, second: -1), to: dayStart) ?? Date()
-        let weekStart = calendar.date(byAdding: .day, value: -6, to: dayStart) ?? dayStart
-
-        fetchCacheHit(start: weekStart, end: dayEnd) { [weak self] weekly in
-            self?.fetchCacheHit(start: dayStart, end: dayEnd) { [weak self] today in
-                self?.cacheRates = CacheRates(today: today, weekly: weekly)
-                self?.cacheInFlight = false
-            }
-        }
+    /// Fetches the selected range when missing, stale (>45s), or forced.
+    func fetchUsageStatsIfNeeded(force: Bool) {
+        fetchUsageStatsIfNeeded(range: selectedRange, force: force)
     }
 
-    private func fetchCacheHit(start: Date, end: Date, completion: @escaping (Double?) -> Void) {
-        guard let token else {
-            completion(nil)
+    func fetchUsageStatsIfNeeded(range: UsageRange, force: Bool) {
+        if !force, let stats = usageStats[range],
+           Date().timeIntervalSince(stats.fetchedAt) < usagePollInterval * 0.75 {
             return
         }
-        var comps = URLComponents(url: Self.cacheHitURL, resolvingAgainstBaseURL: false)!
+        fetchUsageStats(for: range)
+    }
+
+    private func fetchUsageStats(for range: UsageRange) {
+        guard !usageInFlight.contains(range) else { return }
+        guard let token else { return }
+        usageInFlight.insert(range)
+
+        let (start, end) = range.startAndEnd()
+        fetchUsageDetail(usageType: "MODEL", start: start, end: end, token: token) { [weak self] modelPayload in
+            self?.fetchUsageDetail(usageType: "MCP", start: start, end: end, token: token) { [weak self] mcpPayload in
+                guard let self else { return }
+                self.usageStats[range] = RangeUsageStats(
+                    range: range,
+                    modelPayload: modelPayload,
+                    mcpPayload: mcpPayload,
+                    fetchedAt: Date()
+                )
+                self.usageInFlight.remove(range)
+            }
+        }
+    }
+
+    private func fetchUsageDetail(
+        usageType: String,
+        start: Date,
+        end: Date,
+        token: String,
+        completion: @escaping (UsageDetailPayload?) -> Void
+    ) {
+        var comps = URLComponents(url: Self.usageDetailURL, resolvingAgainstBaseURL: false)!
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
         comps.queryItems = [
-            URLQueryItem(name: "usageType", value: "MODEL"),
+            URLQueryItem(name: "usageType", value: usageType),
             URLQueryItem(name: "type", value: "1"),
             URLQueryItem(name: "startTime", value: formatter.string(from: start)),
             URLQueryItem(name: "endTime", value: formatter.string(from: end)),
@@ -137,23 +162,18 @@ final class AppModel: ObservableObject {
         request.setValue("application/json, text/plain, */*", forHTTPHeaderField: "Accept")
         request.setValue(Self.userAgent, forHTTPHeaderField: "User-Agent")
         URLSession.shared.dataTask(with: request) { data, _, _ in
-            let rate = AppModel.parseCacheHitRate(data: data)
+            let payload: UsageDetailPayload?
+            if let data,
+               let body = try? JSONDecoder().decode(UsageDetailResponse.self, from: data),
+               body.success {
+                payload = body.data
+            } else {
+                payload = nil
+            }
             Task { @MainActor in
-                completion(rate)
+                completion(payload)
             }
         }.resume()
-    }
-
-    /// Extract `data.summary.cacheHitRate.value` (fraction string) from the
-    /// usage-detail response. Auth failures yield nil silently — the quota
-    /// poll drives the global auth state.
-    nonisolated static func parseCacheHitRate(data: Data?) -> Double? {
-        guard let data,
-              let body = try? JSONDecoder().decode(CacheHitResponse.self, from: data),
-              body.success,
-              let raw = body.data?.summary?.cacheHitRate?.value,
-              let fraction = Double(raw) else { return nil }
-        return min(max(fraction, 0), 1)
     }
 
     private func restartTimer() {
@@ -199,8 +219,8 @@ final class AppModel: ObservableObject {
         case .authFailure:
             TokenStore.clear()
             token = nil
-            cacheTimer?.invalidate()
-            cacheRates = nil
+            usageTimer?.invalidate()
+            usageStats = [:]
             loginNotice = "凭证已过期，请重新登录"
             state = .loggedOut
             showLoginWindow()
@@ -297,8 +317,8 @@ final class AppModel: ObservableObject {
         TokenStore.clear()
         token = nil
         timer?.invalidate()
-        cacheTimer?.invalidate()
-        cacheRates = nil
+        usageTimer?.invalidate()
+        usageStats = [:]
         loginController?.close()
         loginController = nil
         loginNotice = "已退出登录，可重新登录或切换账号"

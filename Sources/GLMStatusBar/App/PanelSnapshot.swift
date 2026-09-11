@@ -26,28 +26,83 @@ enum PanelSnapshot {
             ),
         ]
 
+        let summary = UsageSummary(
+            cacheHitRate: UsageMetric(value: "0.8307", trend: "-0.1122"),
+            offPeakUsageRate: UsageMetric(value: "0.7815", trend: "1.7051"),
+            totalCredits: UsageMetric(value: "2232.5331", trend: "-0.7696"),
+            averageDailyCredits: UsageMetric(value: "2232.5331", trend: "-0.7696")
+        )
+        let modelUsage = UsageSeries(
+            xTime: ["2026-09-11 10:00:00", "2026-09-11 11:00:00", "2026-09-11 12:00:00", "2026-09-11 13:00:00"],
+            totalUsage: UsageTotalUsage(totalTokens: 41658694, totalCredits: 2017.7331, totalMcpCalls: nil),
+            modelDataList: [
+                UsageModelData(modelCode: "glm-5.3", modelName: "GLM-5.3",
+                               totalTokensUsage: [30000000, 8000000, 3000000, 658694],
+                               totalCreditsUsage: ["1200", "500", "250", "67.73"]),
+                UsageModelData(modelCode: "glm-5.3-flash", modelName: "GLM-5.3-Flash",
+                               totalTokensUsage: [80000, 60000, 40000, 20000],
+                               totalCreditsUsage: ["30", "20", "10", "0.0000"]),
+            ],
+            toolSummaryList: nil
+        )
+        let mcpUsage = UsageSeries(
+            xTime: nil,
+            totalUsage: UsageTotalUsage(totalTokens: nil, totalCredits: 214.8, totalMcpCalls: 163),
+            modelDataList: nil,
+            toolSummaryList: [
+                UsageToolSummary(mcpCode: "search-prime", toolCode: nil, mcpName: "搜索", toolName: nil,
+                                 totalMcpCalls: 120, totalUsageCount: nil, totalCredits: 150.2),
+                UsageToolSummary(mcpCode: "web-reader", toolCode: nil, mcpName: "网页阅读", toolName: nil,
+                                 totalMcpCalls: 43, totalUsageCount: nil, totalCredits: 64.6),
+            ]
+        )
+        let payload = UsageDetailPayload(
+            granularity: "HOUR",
+            summary: summary,
+            modelUsage: modelUsage,
+            mcpUsage: mcpUsage
+        )
+        let usageStats: [UsageRange: RangeUsageStats] = [
+            .today: RangeUsageStats(range: .today, modelPayload: payload, mcpPayload: payload, fetchedAt: Date())
+        ]
+
         let model = AppModel()
         model.overrideForSnapshot(
             .ok(mock, level: "max", Date()),
-            cacheRates: CacheRates(today: 0.819, weekly: 0.9008)
+            usageStats: usageStats
         )
 
-        let renderer = ImageRenderer(
-            content: PanelView()
-                .environmentObject(model)
-                .frame(width: 360)
-                .padding(8)
-                .background(Color.black)
+        // ImageRenderer cannot lay out ScrollView content — render through a
+        // real NSHostingView inside a window so the full dashboard draws.
+        let content = PanelView()
+            .environmentObject(model)
+            .frame(width: 380)
+        let hostingView = NSHostingView(rootView: content)
+        hostingView.frame = NSRect(x: 0, y: 0, width: 380, height: 900)
+
+        let window = NSWindow(
+            contentRect: hostingView.frame,
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
         )
-        renderer.scale = 2
-        if let image = renderer.nsImage {
-            image.lockFocus()
-            let rep = NSBitmapImageRep(data: image.tiffRepresentation ?? Data()) ?? NSBitmapImageRep()
-            image.unlockFocus()
+        window.backgroundColor = .black
+        window.contentView = hostingView
+        window.setFrameOrigin(NSPoint(x: 60, y: 60))
+        window.orderFrontRegardless()
+
+        // Pump the runloop so SwiftUI completes async layout (charts etc.).
+        let deadline = Date().addingTimeInterval(1.2)
+        while RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.05)) && Date() < deadline {}
+
+        hostingView.layoutSubtreeIfNeeded()
+        if let rep = hostingView.bitmapImageRepForCachingDisplay(in: hostingView.bounds) {
+            hostingView.cacheDisplay(in: hostingView.bounds, to: rep)
             if let png = rep.representation(using: .png, properties: [:]) {
                 try? png.write(to: URL(fileURLWithPath: path))
             }
         }
+        window.orderOut(nil)
         exit(0)
     }
 }

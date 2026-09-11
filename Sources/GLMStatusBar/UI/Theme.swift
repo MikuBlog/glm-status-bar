@@ -122,3 +122,28 @@ struct Hoverable<Content: View>: View {
         content(hovering).onHover { hovering = $0 }
     }
 }
+
+// MARK: - Themed switch
+
+struct ThemedToggle: View {
+    @Binding var isOn: Bool
+
+    var body: some View {
+        ZStack(alignment: isOn ? .trailing : .leading) {
+            Capsule()
+                .fill(isOn ? AnyShapeStyle(Theme.accentGradient) : AnyShapeStyle(Color.white.opacity(0.16)))
+                .frame(width: 30, height: 17)
+            Circle()
+                .fill(.white)
+                .frame(width: 13, height: 13)
+                .padding(2)
+                .shadow(color: .black.opacity(0.3), radius: 1.5, y: 0.5)
+        }
+        .contentShape(Capsule())
+        .onTapGesture {
+            withAnimation(.spring(response: 0.2, dampingFraction: 0.7)) {
+                isOn.toggle()
+            }
+        }
+    }
+}
