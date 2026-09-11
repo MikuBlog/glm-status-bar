@@ -1,0 +1,5 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     '/Users/xuanzai/Desktop/all-project/glm-status-bar/.build-xcode/arm64-apple-macosx/release/GLMStatusBar'
+relocations:     []
+...

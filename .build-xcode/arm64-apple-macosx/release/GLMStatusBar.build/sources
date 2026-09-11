@@ -1,0 +1,15 @@
+/Users/xuanzai/Desktop/all-project/glm-status-bar/Sources/GLMStatusBar/App/AppModel.swift
+/Users/xuanzai/Desktop/all-project/glm-status-bar/Sources/GLMStatusBar/App/GLMStatusBarApp.swift
+/Users/xuanzai/Desktop/all-project/glm-status-bar/Sources/GLMStatusBar/App/LaunchAtLoginManager.swift
+/Users/xuanzai/Desktop/all-project/glm-status-bar/Sources/GLMStatusBar/App/PanelSnapshot.swift
+/Users/xuanzai/Desktop/all-project/glm-status-bar/Sources/GLMStatusBar/App/SingleInstanceGuard.swift
+/Users/xuanzai/Desktop/all-project/glm-status-bar/Sources/GLMStatusBar/App/StatusItemController.swift
+/Users/xuanzai/Desktop/all-project/glm-status-bar/Sources/GLMStatusBar/Auth/LoginWindowController.swift
+/Users/xuanzai/Desktop/all-project/glm-status-bar/Sources/GLMStatusBar/Auth/TokenStore.swift
+/Users/xuanzai/Desktop/all-project/glm-status-bar/Sources/GLMStatusBar/Service/CodingTool.swift
+/Users/xuanzai/Desktop/all-project/glm-status-bar/Sources/GLMStatusBar/Service/QuotaFormat.swift
+/Users/xuanzai/Desktop/all-project/glm-status-bar/Sources/GLMStatusBar/Service/QuotaModels.swift
+/Users/xuanzai/Desktop/all-project/glm-status-bar/Sources/GLMStatusBar/UI/MenuBarBadge.swift
+/Users/xuanzai/Desktop/all-project/glm-status-bar/Sources/GLMStatusBar/UI/PanelView.swift
+/Users/xuanzai/Desktop/all-project/glm-status-bar/Sources/GLMStatusBar/UI/QuotaCard.swift
+/Users/xuanzai/Desktop/all-project/glm-status-bar/Sources/GLMStatusBar/UI/Theme.swift

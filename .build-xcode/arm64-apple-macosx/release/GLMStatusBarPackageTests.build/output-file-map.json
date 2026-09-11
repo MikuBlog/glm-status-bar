@@ -1,0 +1,13 @@
+{
+  "": {
+    "dependencies": "/Users/xuanzai/Desktop/all-project/glm-status-bar/.build-xcode/arm64-apple-macosx/release/GLMStatusBarPackageTests.build/GLMStatusBarPackageTests.d",
+    "object": "/Users/xuanzai/Desktop/all-project/glm-status-bar/.build-xcode/arm64-apple-macosx/release/GLMStatusBarPackageTests.build/GLMStatusBarPackageTests.o",
+    "swift-dependencies": "/Users/xuanzai/Desktop/all-project/glm-status-bar/.build-xcode/arm64-apple-macosx/release/GLMStatusBarPackageTests.build/master.swiftdeps"
+  },
+  "/Users/xuanzai/Desktop/all-project/glm-status-bar/.build-xcode/arm64-apple-macosx/release/GLMStatusBarPackageTests.derived/runner.swift": {
+    "object": "/Users/xuanzai/Desktop/all-project/glm-status-bar/.build-xcode/arm64-apple-macosx/release/GLMStatusBarPackageTests.build/runner.swift.o",
+    "swiftmodule": "/Users/xuanzai/Desktop/all-project/glm-status-bar/.build-xcode/arm64-apple-macosx/release/GLMStatusBarPackageTests.build/runner~partial.swiftmodule",
+    "swift-dependencies": "/Users/xuanzai/Desktop/all-project/glm-status-bar/.build-xcode/arm64-apple-macosx/release/GLMStatusBarPackageTests.build/runner.swiftdeps",
+    "diagnostics": "/Users/xuanzai/Desktop/all-project/glm-status-bar/.build-xcode/arm64-apple-macosx/release/GLMStatusBarPackageTests.build/runner.dia"
+  }
+}

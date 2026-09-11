@@ -125,6 +125,19 @@ final class StatusItemController: NSObject, NSMenuDelegate, NSPopoverDelegate {
 
         menu.addItem(.separator())
 
+        for tool in CodingTool.all {
+            let item = NSMenuItem(
+                title: tool.menuItemTitle,
+                action: #selector(openToolAction(_:)),
+                keyEquivalent: ""
+            )
+            item.target = self
+            item.representedObject = tool
+            menu.addItem(item)
+        }
+
+        menu.addItem(.separator())
+
         let logout = NSMenuItem(title: "退出登录 / 切换账号", action: #selector(logoutAction), keyEquivalent: "")
         logout.target = self
         menu.addItem(logout)
@@ -149,6 +162,11 @@ final class StatusItemController: NSObject, NSMenuDelegate, NSPopoverDelegate {
 
     @objc private func openWebAction() {
         NSWorkspace.shared.open(AppModel.overviewURL)
+    }
+
+    @objc private func openToolAction(_ sender: NSMenuItem) {
+        guard let tool = sender.representedObject as? CodingTool else { return }
+        tool.openOrVisitWebsite()
     }
 
     @objc private func logoutAction() {
