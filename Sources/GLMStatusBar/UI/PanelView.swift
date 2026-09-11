@@ -3,6 +3,15 @@ import SwiftUI
 struct PanelView: View {
     @EnvironmentObject private var model: AppModel
 
+    static var reportedContentHeight: CGFloat = 0
+
+    static func reportContentHeight(_ h: CGFloat) {
+        reportedContentHeight = h
+        if ProcessInfo.processInfo.environment["GLM_PANEL_SNAPSHOT"] != nil {
+            FileHandle.standardError.write(Data("scroll content height: \(h)\n".utf8))
+        }
+    }
+
     /// Ceiling for the scrollable content area, set by the presenter from the
     /// screen size. Content shorter than this renders without any scrolling.
     var maxContentHeight: CGFloat = .infinity
@@ -238,7 +247,14 @@ struct PanelView: View {
                 UsageDashboardView()
                     .padding(.horizontal, 14)
             }
-            .padding(.bottom, 4)
+            .padding(.bottom, 2)
+            .background(
+                GeometryReader { geo in
+                    Color.clear
+                        .onAppear { Self.reportContentHeight(geo.size.height) }
+                        .onChange(of: geo.size.height) { _, h in Self.reportContentHeight(h) }
+                }
+            )
         }
         .scrollBounceBehavior(.basedOnSize)
         .frame(maxHeight: maxContentHeight)

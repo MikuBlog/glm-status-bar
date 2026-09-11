@@ -75,12 +75,13 @@ enum PanelSnapshot {
         // ImageRenderer cannot lay out ScrollView content — render through a
         // real NSHostingView inside a window so the full dashboard draws.
         let screenHeight = NSScreen.main?.visibleFrame.height ?? 900
-        let maxContentHeight = max(360, screenHeight * 0.75 - 110)
+        let maxPanelHeight = min(720, screenHeight * 0.75)
+        let maxContentHeight = max(360, maxPanelHeight - 96)
         let content = PanelView(maxContentHeight: maxContentHeight)
             .environmentObject(model)
-            .frame(width: 440)
+            .frame(width: 520)
         let hostingView = NSHostingView(rootView: content)
-        hostingView.frame = NSRect(x: 0, y: 0, width: 380, height: 900)
+        hostingView.frame = NSRect(x: 0, y: 0, width: 520, height: maxPanelHeight)
 
         let window = NSWindow(
             contentRect: hostingView.frame,
@@ -98,6 +99,7 @@ enum PanelSnapshot {
         while RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.05)) && Date() < deadline {}
 
         hostingView.layoutSubtreeIfNeeded()
+        FileHandle.standardError.write(Data("snapshot panel ideal height: \(hostingView.fittingSize.height)\n".utf8))
         if let rep = hostingView.bitmapImageRepForCachingDisplay(in: hostingView.bounds) {
             hostingView.cacheDisplay(in: hostingView.bounds, to: rep)
             if let png = rep.representation(using: .png, properties: [:]) {

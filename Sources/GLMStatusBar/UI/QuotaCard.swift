@@ -12,7 +12,7 @@ struct QuotaCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             header
-            HStack(alignment: .center, spacing: 16) {
+            HStack(alignment: .center, spacing: 12) {
                 ring
                 stats
             }
@@ -64,7 +64,7 @@ struct QuotaCard: View {
                 .shadow(color: glow.opacity(0.35), radius: 14)
             VStack(spacing: 0) {
                 Text(QuotaFormat.percentText(animatedPercentage))
-                    .font(.system(size: 16, weight: .heavy, design: .rounded))
+                    .font(.system(size: 14, weight: .heavy, design: .rounded))
                     .foregroundStyle(Theme.textPrimary)
                     .contentTransition(.numericText())
                     .monospacedDigit()
@@ -73,7 +73,7 @@ struct QuotaCard: View {
                     .foregroundStyle(Theme.textTertiary)
             }
         }
-        .frame(width: 64, height: 64)
+        .frame(width: 58, height: 58)
     }
 
     // MARK: - Stats
@@ -81,9 +81,25 @@ struct QuotaCard: View {
     private var stats: some View {
         VStack(alignment: .leading, spacing: 6) {
             statRow(label: "已用积分", value: QuotaFormat.used(limit.usedCredits), prominent: true)
-            statRow(label: "总额", value: QuotaFormat.total(limit.totalCredits))
-            if let remaining = limit.remaining {
-                statRow(label: "剩余", value: QuotaFormat.total(remaining))
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text("总额")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(Theme.textTertiary)
+                Text(QuotaFormat.total(limit.totalCredits))
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .foregroundStyle(Theme.textSecondary)
+                Text("· 剩余")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(Theme.textTertiary)
+                Text(QuotaFormat.total(limit.remaining))
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .foregroundStyle(Theme.textSecondary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

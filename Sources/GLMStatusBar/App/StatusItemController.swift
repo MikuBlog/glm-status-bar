@@ -191,21 +191,25 @@ final class StatusItemController: NSObject, NSMenuDelegate, NSPopoverDelegate {
     }
 
     private func makePopover() -> NSPopover {
-        // Scroll only kicks in when content exceeds 3/4 of the visible screen.
-        let screenHeight = NSScreen.main?.visibleFrame.height ?? 900
-        let maxContentHeight = max(360, screenHeight * 0.75 - 110)
+        // The panel never grows past 3/4 of the visible screen; the inner
+        // ScrollView absorbs any overflow, so short content shows with no
+        // scrollbar at all.
+        let screenH = NSScreen.main?.visibleFrame.height ?? 900
+        let maxPanelHeight = screenH * 0.75
+        let maxContentHeight = max(360, maxPanelHeight - 96)
+
         let hosting = NSHostingController(
             rootView: PanelView(maxContentHeight: maxContentHeight)
                 .environmentObject(model)
-                .frame(width: 440)
+                .frame(width: 520)
         )
-        hosting.sizingOptions = .preferredContentSize
 
         let popover = NSPopover()
         popover.behavior = .transient
         popover.animates = true
         popover.appearance = NSAppearance(named: .vibrantDark)
         popover.contentViewController = hosting
+        popover.contentSize = NSSize(width: 520, height: min(720, maxPanelHeight))
         return popover
     }
 
