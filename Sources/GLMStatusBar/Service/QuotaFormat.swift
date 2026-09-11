@@ -69,21 +69,20 @@ enum QuotaFormat {
     /// Big counts: 41658694 -> "4,165.9万", 1.2e8 -> "1.2亿", small -> grouping.
     static func bigCount(_ value: Double?) -> String {
         guard let value else { return "--" }
+        let scaled: Double
+        let unit: String
         if value >= 1e8 {
-            return trimmed(value / 1e8, decimals: 1) + "亿"
+            scaled = value / 1e8; unit = "亿"
+        } else if value >= 1e4 {
+            scaled = value / 1e4; unit = "万"
+        } else {
+            return used(value)
         }
-        if value >= 1e4 {
-            return trimmed(value / 1e4, decimals: 1) + "万"
-        }
-        return used(value)
-    }
-
-    private static func trimmed(_ v: Double, decimals: Int) -> String {
-        let s = String(format: "%.\(decimals)f", v)
-        var t = s
-        while t.hasSuffix("0") { t.removeLast() }
-        if t.hasSuffix(".") { t.removeLast() }
-        return t
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        f.maximumFractionDigits = 1
+        f.usesGroupingSeparator = true
+        return (f.string(from: NSNumber(value: scaled)) ?? String(scaled)) + unit
     }
 
     /// Trend pair: text like "+12.3%" / "-12.3%" and direction (up = worse for costs).

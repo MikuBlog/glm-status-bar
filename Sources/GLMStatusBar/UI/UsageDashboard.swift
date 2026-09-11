@@ -85,7 +85,8 @@ struct KpiRow: View {
             KpiChip(
                 title: "缓存命中率",
                 value: summary?.cacheHitRate?.fractionValue.map(QuotaFormat.rateText) ?? "--",
-                trend: QuotaFormat.trend(summary?.cacheHitRate?.fractionTrend)
+                trend: QuotaFormat.trend(summary?.cacheHitRate?.fractionTrend),
+                invertTrendColor: true
             )
             KpiChip(
                 title: "积分总数",
@@ -105,6 +106,9 @@ struct KpiChip: View {
     let title: String
     let value: String
     let trend: (text: String, up: Bool)?
+    /// For cost metrics, down = good (green). For rates like cache hit,
+    /// down = bad (orange), so the semantic flips.
+    var invertTrendColor = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
@@ -126,7 +130,7 @@ struct KpiChip: View {
                         .font(.system(size: 9, weight: .semibold))
                         .monospacedDigit()
                 }
-                .foregroundStyle(trend.up ? Color.orange : Color.green)
+                .foregroundStyle((trend.up != invertTrendColor) ? Color.orange : Color.green)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

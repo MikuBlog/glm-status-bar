@@ -64,7 +64,7 @@ struct QuotaCard: View {
                 .shadow(color: glow.opacity(0.35), radius: 14)
             VStack(spacing: 0) {
                 Text(QuotaFormat.percentText(animatedPercentage))
-                    .font(.system(size: 19, weight: .heavy, design: .rounded))
+                    .font(.system(size: 16, weight: .heavy, design: .rounded))
                     .foregroundStyle(Theme.textPrimary)
                     .contentTransition(.numericText())
                     .monospacedDigit()
@@ -73,14 +73,14 @@ struct QuotaCard: View {
                     .foregroundStyle(Theme.textTertiary)
             }
         }
-        .frame(width: 76, height: 76)
+        .frame(width: 64, height: 64)
     }
 
     // MARK: - Stats
 
     private var stats: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            statRow(label: "已用", value: QuotaFormat.used(limit.usedCredits), prominent: true, unit: "积分")
+        VStack(alignment: .leading, spacing: 6) {
+            statRow(label: "已用积分", value: QuotaFormat.used(limit.usedCredits), prominent: true)
             statRow(label: "总额", value: QuotaFormat.total(limit.totalCredits))
             if let remaining = limit.remaining {
                 statRow(label: "剩余", value: QuotaFormat.total(remaining))
@@ -89,23 +89,19 @@ struct QuotaCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func statRow(label: String, value: String, prominent: Bool = false, unit: String? = nil) -> some View {
-        HStack(alignment: .firstTextBaseline) {
+    private func statRow(label: String, value: String, prominent: Bool = false) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
             Text(label)
-                .font(.system(size: 10, weight: .medium))
+                .font(.system(size: 9, weight: .medium))
                 .foregroundStyle(Theme.textTertiary)
-                .frame(width: 26, alignment: .leading)
             Text(value)
-                .font(.system(size: prominent ? 15 : 12,
+                .font(.system(size: prominent ? 13 : 11,
                               weight: prominent ? .bold : .semibold,
                               design: .rounded))
                 .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
                 .foregroundStyle(prominent ? Theme.textPrimary : Theme.textSecondary)
-            if let unit {
-                Text(unit)
-                    .font(.system(size: 8, weight: .medium))
-                    .foregroundStyle(Theme.textTertiary)
-            }
             Spacer(minLength: 0)
         }
     }

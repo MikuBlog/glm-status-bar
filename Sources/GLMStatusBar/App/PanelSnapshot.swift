@@ -74,9 +74,11 @@ enum PanelSnapshot {
 
         // ImageRenderer cannot lay out ScrollView content — render through a
         // real NSHostingView inside a window so the full dashboard draws.
-        let content = PanelView()
+        let screenHeight = NSScreen.main?.visibleFrame.height ?? 900
+        let maxContentHeight = max(360, screenHeight * 0.75 - 110)
+        let content = PanelView(maxContentHeight: maxContentHeight)
             .environmentObject(model)
-            .frame(width: 380)
+            .frame(width: 440)
         let hostingView = NSHostingView(rootView: content)
         hostingView.frame = NSRect(x: 0, y: 0, width: 380, height: 900)
 

@@ -2,6 +2,10 @@ import SwiftUI
 
 struct PanelView: View {
     @EnvironmentObject private var model: AppModel
+
+    /// Ceiling for the scrollable content area, set by the presenter from the
+    /// screen size. Content shorter than this renders without any scrolling.
+    var maxContentHeight: CGFloat = .infinity
     @State private var launchAtLogin = false
 
     private static let timeFormatter: DateFormatter = {
@@ -211,10 +215,15 @@ struct PanelView: View {
 
     private var cards: some View {
         let limits = model.displayLimits
+        let columns: [GridItem] = {
+            switch limits.count {
+            case 2: return [GridItem(.flexible()), GridItem(.flexible())]
+            case 1: return [GridItem(.flexible())]
+            default: return [GridItem(.adaptive(minimum: 300), spacing: 10)]
+            }
+        }()
         let quotaGrid = LazyVGrid(
-            columns: limits.count >= 3
-                ? [GridItem(.adaptive(minimum: 280), spacing: 10)]
-                : [GridItem(.flexible())],
+            columns: columns,
             spacing: 10
         ) {
             ForEach(limits) { limit in
@@ -232,7 +241,7 @@ struct PanelView: View {
             .padding(.bottom, 4)
         }
         .scrollBounceBehavior(.basedOnSize)
-        .frame(maxHeight: 560)
+        .frame(maxHeight: maxContentHeight)
     }
 
     // MARK: - Footer

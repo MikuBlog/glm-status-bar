@@ -191,10 +191,13 @@ final class StatusItemController: NSObject, NSMenuDelegate, NSPopoverDelegate {
     }
 
     private func makePopover() -> NSPopover {
+        // Scroll only kicks in when content exceeds 3/4 of the visible screen.
+        let screenHeight = NSScreen.main?.visibleFrame.height ?? 900
+        let maxContentHeight = max(360, screenHeight * 0.75 - 110)
         let hosting = NSHostingController(
-            rootView: PanelView()
+            rootView: PanelView(maxContentHeight: maxContentHeight)
                 .environmentObject(model)
-                .frame(width: 380)
+                .frame(width: 440)
         )
         hosting.sizingOptions = .preferredContentSize
 

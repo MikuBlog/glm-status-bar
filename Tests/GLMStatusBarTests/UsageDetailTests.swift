@@ -107,7 +107,7 @@ final class UsageDetailTests: XCTestCase {
     }
 
     func testBigCountFormatting() {
-        XCTAssertEqual(QuotaFormat.bigCount(41658694), "4165.9万")
+        XCTAssertEqual(QuotaFormat.bigCount(41658694), "4,165.9万")
         XCTAssertEqual(QuotaFormat.bigCount(120000000), "1.2亿")
         XCTAssertEqual(QuotaFormat.bigCount(5000), "5,000")
         XCTAssertEqual(QuotaFormat.bigCount(nil), "--")
