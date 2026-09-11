@@ -51,6 +51,11 @@ enum QuotaFormat {
     static func percentText(_ percentage: Double) -> String {
         String(Int(percentage.rounded()))
     }
+
+    /// Hit-rate display with one decimal, e.g. 0.819 -> "81.9%"
+    static func rateText(_ fraction: Double) -> String {
+        String(format: "%.1f%%", fraction * 100)
+    }
 }
 
 enum ResetTime {

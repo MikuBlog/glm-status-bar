@@ -27,7 +27,10 @@ enum PanelSnapshot {
         ]
 
         let model = AppModel()
-        model.overrideForSnapshot(.ok(mock, level: "max", Date()))
+        model.overrideForSnapshot(
+            .ok(mock, level: "max", Date()),
+            cacheRates: CacheRates(today: 0.819, weekly: 0.9008)
+        )
 
         let renderer = ImageRenderer(
             content: PanelView()

@@ -211,7 +211,7 @@ struct PanelView: View {
 
     private var cards: some View {
         let limits = model.displayLimits
-        let grid = LazyVGrid(
+        let quotaGrid = LazyVGrid(
             columns: limits.count >= 3
                 ? [GridItem(.adaptive(minimum: 250), spacing: 10)]
                 : [GridItem(.flexible())],
@@ -226,14 +226,57 @@ struct PanelView: View {
         return Group {
             if limits.count > 3 {
                 ScrollView {
-                    grid
+                    VStack(spacing: 10) {
+                        quotaGrid
+                        cacheRatesRow
+                    }
                 }
                 .scrollBounceBehavior(.basedOnSize)
                 .frame(maxHeight: 460)
             } else {
-                grid
+                VStack(spacing: 10) {
+                    quotaGrid
+                    cacheRatesRow
+                }
             }
         }
+    }
+
+    // MARK: - Cache hit rates
+
+    private var cacheRatesRow: some View {
+        HStack(spacing: 10) {
+            cacheCard(title: "今日缓存命中率", rate: model.cacheRates?.today, icon: "bolt.badge.clock")
+            cacheCard(title: "近7天缓存命中率", rate: model.cacheRates?.weekly, icon: "calendar.badge.clock")
+        }
+        .padding(.horizontal, 14)
+    }
+
+    private func cacheCard(title: String, rate: Double?, icon: String) -> some View {
+        HStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(Color.white.opacity(0.07))
+                    .frame(width: 36, height: 36)
+                Image(systemName: icon)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.accentGradient)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(Theme.textTertiary)
+                Text(rate.map { QuotaFormat.rateText($0) } ?? "--")
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .foregroundStyle(Theme.textPrimary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .background(Theme.cardShape(radius: 14).fill(Theme.cardFill))
+        .overlay(Theme.cardShape(radius: 14).strokeBorder(Theme.cardBorder))
     }
 
     // MARK: - Footer
