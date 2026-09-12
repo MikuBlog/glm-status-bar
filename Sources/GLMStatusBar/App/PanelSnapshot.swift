@@ -9,6 +9,7 @@ enum PanelSnapshot {
     static func maybeRunSnapshotMode() {
         guard let path = ProcessInfo.processInfo.environment["GLM_PANEL_SNAPSHOT"], !path.isEmpty else {
             maybeRunBadgeSnapshotMode()
+            maybeRunDashboardSnapshotMode()
             return
         }
 
@@ -82,7 +83,7 @@ enum PanelSnapshot {
             .environmentObject(model)
             .frame(width: 520)
         let hostingView = NSHostingView(rootView: content)
-        hostingView.frame = NSRect(x: 0, y: 0, width: 520, height: maxPanelHeight)
+        hostingView.frame = NSRect(x: 0, y: 0, width: 520, height: 2200)
 
         let window = NSWindow(
             contentRect: hostingView.frame,
@@ -99,11 +100,9 @@ enum PanelSnapshot {
         let deadline = Date().addingTimeInterval(1.2)
         while RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.05)) && Date() < deadline {}
 
-        hostingView.layoutSubtreeIfNeeded()
-        // Fit the view to its content so nothing is cut off.
-        let fittedHeight = hostingView.fittingSize.height
-        hostingView.frame = NSRect(x: 0, y: 0, width: 520, height: fittedHeight)
-        hostingView.layoutSubtreeIfNeeded()
+        // Render on a tall canvas, then trim the pure-black tail so the
+        // capture always contains the full dashboard regardless of layout
+        // timing.
         if let rep = hostingView.bitmapImageRepForCachingDisplay(in: hostingView.bounds) {
             hostingView.cacheDisplay(in: hostingView.bounds, to: rep)
             if let png = rep.representation(using: .png, properties: [:]) {
@@ -111,7 +110,123 @@ enum PanelSnapshot {
             }
         }
         window.orderOut(nil)
+
+        // Crop leading/trailing pure-black window rows (threshold keeps the
+        // dark-navy panel and dim cards intact) with PIL if available.
+        let trim = Process()
+        trim.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        trim.arguments = [
+            "python3", "-c",
+            """
+            import sys
+            from PIL import Image
+            p = sys.argv[1]
+            img = Image.open(p).convert("RGB")
+            w, h = img.size
+            px = img.load()
+            def row_has_content(y):
+                for x in range(0, w, 8):
+                    r, g, b = px[x, y]
+                    if r + g + b > 12:
+                        return True
+                return False
+            top = 0
+            while top < h - 1 and not row_has_content(top):
+                top += 1
+            bottom = h - 1
+            while bottom > top and not row_has_content(bottom):
+                bottom -= 1
+            img.crop((0, max(0, top - 8), w, min(h, bottom + 16))).save(p)
+            """,
+            path,
+        ]
+        try? trim.run()
+        Thread.sleep(forTimeInterval: 1.0)
         exit(0)
+    }
+
+    /// DEBUG: `GLM_DASH_SNAPSHOT=/path/out.png` renders only the dashboard.
+    @MainActor
+    static func maybeRunDashboardSnapshotMode() {
+        guard let path = ProcessInfo.processInfo.environment["GLM_DASH_SNAPSHOT"], !path.isEmpty else {
+            return
+        }
+        let model = AppModel()
+        let payload = makeMockPayload()
+        let usageStats: [UsageRange: RangeUsageStats] = [
+            .today: RangeUsageStats(range: .today, modelPayload: payload, mcpPayload: payload, fetchedAt: Date())
+        ]
+        model.overrideForSnapshot(.ok(makeMockLimits(), level: "max", Date()), usageStats: usageStats)
+
+        let hostingView = NSHostingView(rootView: UsageDashboardView()
+            .environmentObject(model)
+            .frame(width: 520))
+        hostingView.frame = NSRect(x: 0, y: 0, width: 520, height: 1600)
+        let window = NSWindow(
+            contentRect: hostingView.frame,
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        window.contentView = hostingView
+        window.setFrameOrigin(NSPoint(x: 60, y: 60))
+        window.orderFrontRegardless()
+        let deadline = Date().addingTimeInterval(1.2)
+        while RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.05)) && Date() < deadline {}
+        hostingView.layoutSubtreeIfNeeded()
+        if let rep = hostingView.bitmapImageRepForCachingDisplay(in: hostingView.bounds) {
+            hostingView.cacheDisplay(in: hostingView.bounds, to: rep)
+            if let png = rep.representation(using: .png, properties: [:]) {
+                try? png.write(to: URL(fileURLWithPath: path))
+            }
+        }
+        exit(0)
+    }
+
+    @MainActor
+    static func makeMockLimits() -> [QuotaLimit] {
+        [
+            QuotaLimit(type: "CREDIT_LIMIT", unit: 3, number: 5,
+                       usage: 28000, currentValue: 5894, remaining: 22106,
+                       percentage: 21, nextResetTime: nil),
+            QuotaLimit(type: "CREDIT_LIMIT", unit: 6, number: 1,
+                       usage: 140000, currentValue: 5894, remaining: 134106,
+                       percentage: 4, nextResetTime: nil),
+        ]
+    }
+
+    @MainActor
+    static func makeMockPayload() -> UsageDetailPayload {
+        let summary = UsageSummary(
+            cacheHitRate: UsageMetric(value: "0.8307", trend: "-0.1122"),
+            offPeakUsageRate: UsageMetric(value: "0.7815", trend: "1.7051"),
+            totalCredits: UsageMetric(value: "2232.5331", trend: "-0.7696"),
+            averageDailyCredits: UsageMetric(value: "2232.5331", trend: "-0.7696")
+        )
+        let modelUsage = UsageSeries(
+            xTime: ["2026-09-11 10:00:00", "2026-09-11 11:00:00", "2026-09-11 12:00:00"],
+            totalUsage: UsageTotalUsage(totalTokens: 41658694, totalCredits: 2017.7331, totalMcpCalls: nil),
+            modelDataList: [
+                UsageModelData(modelCode: "glm-5.3", modelName: "GLM-5.3",
+                               totalTokensUsage: [1200, 500, 317],
+                               totalCreditsUsage: ["1200", "500", "317"]),
+                UsageModelData(modelCode: "glm-5.3-flash", modelName: "GLM-5.3-Flash",
+                               totalTokensUsage: [30, 20, 10],
+                               totalCreditsUsage: ["30", "20", "10"]),
+            ],
+            toolSummaryList: nil
+        )
+        let mcpUsage = UsageSeries(
+            xTime: nil,
+            totalUsage: UsageTotalUsage(totalTokens: nil, totalCredits: 214.8, totalMcpCalls: 163),
+            modelDataList: nil,
+            toolSummaryList: [
+                UsageToolSummary(mcpCode: "search-prime", toolCode: nil, mcpName: "搜索", toolName: nil,
+                                 totalMcpCalls: 120, totalUsageCount: nil, totalCredits: 150.2),
+            ]
+        )
+        return UsageDetailPayload(granularity: "HOUR", summary: summary,
+                                  modelUsage: modelUsage, mcpUsage: mcpUsage)
     }
 
     /// `GLM_BADGE_SNAPSHOT=/path/out.png` renders the menu bar capsule in all

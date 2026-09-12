@@ -241,23 +241,31 @@ struct PanelView: View {
         }
         .padding(.horizontal, 14)
 
-        return ScrollView {
-            VStack(spacing: 10) {
-                quotaGrid
-                UsageDashboardView()
-                    .padding(.horizontal, 14)
-            }
-            .padding(.bottom, 2)
-            .background(
-                GeometryReader { geo in
-                    Color.clear
-                        .onAppear { Self.reportContentHeight(geo.size.height) }
-                        .onChange(of: geo.size.height) { _, h in Self.reportContentHeight(h) }
-                }
-            )
+        // Snapshot mode (maxContentHeight == .infinity) renders everything
+        // fully expanded; the real popover uses a capped ScrollView.
+        let sections = VStack(spacing: 10) {
+            quotaGrid
+            UsageDashboardView()
+                .padding(.horizontal, 16)
         }
-        .scrollBounceBehavior(.basedOnSize)
-        .frame(maxHeight: maxContentHeight)
+        .padding(.bottom, 2)
+        .background(
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { Self.reportContentHeight(geo.size.height) }
+                    .onChange(of: geo.size.height) { _, h in Self.reportContentHeight(h) }
+            }
+        )
+
+        return Group {
+            if maxContentHeight == .infinity {
+                sections
+            } else {
+                ScrollView { sections }
+                    .scrollBounceBehavior(.basedOnSize)
+                    .frame(maxHeight: maxContentHeight)
+            }
+        }
     }
 
     // MARK: - Footer

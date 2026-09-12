@@ -13,11 +13,9 @@ struct UsageDashboardView: View {
             if let stats = stats {
                 KpiRow(stats: stats)
                 UsageTrendCard(stats: stats)
-                HStack(alignment: .top, spacing: 10) {
-                    ModelsCard(stats: stats)
-                    ToolsCard(stats: stats)
-                    MiscCard(stats: stats)
-                }
+                ModelsCard(stats: stats)
+                ToolsCard(stats: stats)
+                MiscCard(stats: stats)
             } else {
                 loadingCard
             }
