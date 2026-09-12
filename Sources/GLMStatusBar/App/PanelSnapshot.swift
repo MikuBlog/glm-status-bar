@@ -99,7 +99,10 @@ enum PanelSnapshot {
         while RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.05)) && Date() < deadline {}
 
         hostingView.layoutSubtreeIfNeeded()
-        FileHandle.standardError.write(Data("snapshot panel ideal height: \(hostingView.fittingSize.height)\n".utf8))
+        // Fit the view to its content so nothing is cut off.
+        let fittedHeight = hostingView.fittingSize.height
+        hostingView.frame = NSRect(x: 0, y: 0, width: 520, height: fittedHeight)
+        hostingView.layoutSubtreeIfNeeded()
         if let rep = hostingView.bitmapImageRepForCachingDisplay(in: hostingView.bounds) {
             hostingView.cacheDisplay(in: hostingView.bounds, to: rep)
             if let png = rep.representation(using: .png, properties: [:]) {

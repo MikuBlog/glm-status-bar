@@ -2,6 +2,10 @@
 
 macOS 菜单栏应用，实时展示 [GLM Coding Plan](https://bigmodel.cn/coding-plan/personal/overview) 的 5 小时额度与周额度使用情况。
 
+## 界面预览
+
+![GLM StatusBar 界面预览](assets/preview.png)
+
 ## 功能
 
 - **菜单栏常驻**：`仪表图标 + 7%·1%` 双额度百分比，按使用率着色（绿 <50%、橙 50–80%、红 >80%）
