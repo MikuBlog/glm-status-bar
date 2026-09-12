@@ -25,11 +25,20 @@ macOS 菜单栏应用，实时展示 [GLM Coding Plan](https://bigmodel.cn/codin
 - **内置登录**：App 内打开 bigmodel.cn 登录页，登录后自动提取凭证（无需手动复制 token）
 - **凭证缓存**：token 存于 App 本地缓存（UserDefaults），重启免登录；过期自动弹出重新登录
 - **开机自启**：面板底栏开关，基于 SMAppService 注册登录项
-- **最新 macOS**：原生 SwiftUI `MenuBarExtra`，兼容 macOS 15 – 26（Tahoe）
+- **开机自启**：面板底栏开关，基于 SMAppService 注册登录项
+- **单实例**：重复启动自动激活已有实例，不会出现多个菜单栏图标
+- **最新 macOS**：原生 SwiftUI + NSStatusItem，兼容 macOS 15 – 26（Tahoe）
 
 ## 数据来源
 
-`GET https://bigmodel.cn/api/monitor/usage/quota/limit`，Authorization 头使用登录后 `localStorage["bigmodel_token_production"]` 的值（与网页端一致，原样发送）。App 只读该接口，不做任何写操作。
+- 额度：`GET /api/monitor/usage/quota/limit`
+- 用量统计：`GET /api/monitor/credit-usage/usage-detail`（usageType=MODEL/MCP，startTime/endTime）
+
+Authorization 头使用登录后 `localStorage["bigmodel_token_production"]` 的值（与网页端一致，原样发送）。App 只读接口，不做任何写操作，token 仅存本机。
+
+## 下载
+
+最新版本：[Releases](https://github.com/MikuBlog/glm-status-bar/releases) —— 下载 `GLM-StatusBar-*.zip` 解压即用。
 
 ## 构建与运行
 
