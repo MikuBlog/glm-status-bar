@@ -295,36 +295,34 @@ struct ModelUsageRow: View {
     let share: Double
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: 7) {
             HStack(alignment: .firstTextBaseline) {
                 Text(model.displayName)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(1)
-                Spacer(minLength: 6)
+                Spacer(minLength: 10)
+                Text("积分 \(QuotaFormat.credits(model.totalCredits))")
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.textPrimary)
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.white.opacity(0.08))
+                    Capsule()
+                        .fill(Theme.accentGradient)
+                        .frame(width: max(3, geo.size.width * share))
+                }
+            }
+            .frame(height: 6)
+
+            HStack(spacing: 6) {
                 Text("\(QuotaFormat.bigCount(model.totalTokens)) tokens")
                     .font(.system(size: 10.5, weight: .medium))
                     .monospacedDigit()
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
                     .foregroundStyle(Theme.textSecondary)
-            }
-            HStack(spacing: 6) {
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(Color.white.opacity(0.08))
-                        Capsule()
-                            .fill(Theme.accentGradient)
-                            .frame(width: max(3, geo.size.width * share))
-                    }
-                }
-                .frame(height: 5)
-
-                Text("积分 \(QuotaFormat.credits(model.totalCredits))")
-                    .font(.system(size: 10.5, weight: .semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.textSecondary)
-                    .fixedSize()
+                Spacer(minLength: 0)
             }
         }
     }
