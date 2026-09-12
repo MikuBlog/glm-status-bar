@@ -83,7 +83,7 @@ enum PanelSnapshot {
             .environmentObject(model)
             .frame(width: 520)
         let hostingView = NSHostingView(rootView: content)
-        hostingView.frame = NSRect(x: 0, y: 0, width: 520, height: 2200)
+hostingView.frame = NSRect(x: 0, y: 0, width: 520, height: min(766, screenHeight * 0.8))
 
         let window = NSWindow(
             contentRect: hostingView.frame,
@@ -100,9 +100,9 @@ enum PanelSnapshot {
         let deadline = Date().addingTimeInterval(1.2)
         while RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.05)) && Date() < deadline {}
 
-        // Render on a tall canvas, then trim the pure-black tail so the
-        // capture always contains the full dashboard regardless of layout
-        // timing.
+        // Render exactly what the user sees in the popover (content capped at
+        // maxContentHeight, inner ScrollView handles overflow).
+        hostingView.layoutSubtreeIfNeeded()
         if let rep = hostingView.bitmapImageRepForCachingDisplay(in: hostingView.bounds) {
             hostingView.cacheDisplay(in: hostingView.bounds, to: rep)
             if let png = rep.representation(using: .png, properties: [:]) {
@@ -110,38 +110,6 @@ enum PanelSnapshot {
             }
         }
         window.orderOut(nil)
-
-        // Crop leading/trailing pure-black window rows (threshold keeps the
-        // dark-navy panel and dim cards intact) with PIL if available.
-        let trim = Process()
-        trim.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        trim.arguments = [
-            "python3", "-c",
-            """
-            import sys
-            from PIL import Image
-            p = sys.argv[1]
-            img = Image.open(p).convert("RGB")
-            w, h = img.size
-            px = img.load()
-            def row_has_content(y):
-                for x in range(0, w, 8):
-                    r, g, b = px[x, y]
-                    if r + g + b > 12:
-                        return True
-                return False
-            top = 0
-            while top < h - 1 and not row_has_content(top):
-                top += 1
-            bottom = h - 1
-            while bottom > top and not row_has_content(bottom):
-                bottom -= 1
-            img.crop((0, max(0, top - 8), w, min(h, bottom + 16))).save(p)
-            """,
-            path,
-        ]
-        try? trim.run()
-        Thread.sleep(forTimeInterval: 1.0)
         exit(0)
     }
 
