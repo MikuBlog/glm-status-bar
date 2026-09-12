@@ -43,34 +43,35 @@ struct PanelView: View {
     private var header: some View {
         HStack(spacing: 10) {
             ZStack {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
                     .fill(Theme.accentGradient)
-                    .frame(width: 30, height: 30)
+                    .frame(width: 32, height: 32)
                     .shadow(color: Color.cyan.opacity(0.45), radius: 7)
                 Image(systemName: "gauge.with.needle")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(.white)
             }
 
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 9) {
                     Text("GLM Coding Plan")
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.system(size: 13.5, weight: .bold))
+                        .kerning(0.3)
                         .foregroundStyle(Theme.textPrimary)
                     if let badge = model.planLevelBadge {
                         Text(badge)
-                            .font(.system(size: 8, weight: .heavy))
-                            .tracking(0.8)
+                            .font(.system(size: 8.5, weight: .heavy))
+                            .tracking(1)
                             .foregroundStyle(.white)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 2)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2.5)
                             .background(Capsule().fill(Theme.accentGradient))
                     }
                 }
-                HStack(spacing: 4) {
+                HStack(spacing: 5) {
                     PulsingDot(color: statusColor)
                     Text(headerSubtitle)
-                        .font(.system(size: 11.5, weight: .semibold))
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Theme.textSecondary)
                         .monospacedDigit()
                 }

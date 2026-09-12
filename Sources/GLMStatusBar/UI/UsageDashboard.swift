@@ -141,7 +141,7 @@ struct KpiChip: View {
                 .foregroundStyle(Theme.textTertiary)
             HStack(alignment: .firstTextBaseline, spacing: 3) {
                 Text(value)
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.55)
@@ -298,12 +298,12 @@ struct ModelUsageRow: View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(alignment: .firstTextBaseline) {
                 Text(model.displayName)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(1)
                 Spacer(minLength: 10)
                 Text("积分 \(QuotaFormat.credits(model.totalCredits))")
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(Theme.textPrimary)
             }
@@ -319,7 +319,7 @@ struct ModelUsageRow: View {
 
             HStack(spacing: 6) {
                 Text("\(QuotaFormat.bigCount(model.totalTokens)) tokens")
-                    .font(.system(size: 10.5, weight: .medium))
+                    .font(.system(size: 10, weight: .medium))
                     .monospacedDigit()
                     .foregroundStyle(Theme.textSecondary)
                 Spacer(minLength: 0)
@@ -341,12 +341,12 @@ struct ToolsCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("MCP 工具")
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 12.5, weight: .semibold))
                 .foregroundStyle(Theme.textPrimary)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("\(QuotaFormat.used(mcpUsage?.totalUsage?.totalMcpCalls)) 次")
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(Theme.textPrimary)
                 Text("调用 \(QuotaFormat.credits(mcpUsage?.totalUsage?.totalCredits)) 积分")
