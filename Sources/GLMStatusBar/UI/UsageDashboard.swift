@@ -76,8 +76,8 @@ struct RangeSegmented: View {
 
             if let stats = statsForCaption {
                 Text("更新于 \(stats.fetchedAt.formatted(.dateTime.hour().minute().second()))")
-                    .font(.system(size: 8))
-                    .foregroundStyle(Theme.textTertiary)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Theme.textPrimary)
                     .monospacedDigit()
             }
         }

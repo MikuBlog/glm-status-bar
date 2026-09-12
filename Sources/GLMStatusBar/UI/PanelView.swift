@@ -70,8 +70,8 @@ struct PanelView: View {
                 HStack(spacing: 4) {
                     PulsingDot(color: statusColor)
                     Text(headerSubtitle)
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(Theme.textTertiary)
+                        .font(.system(size: 11.5, weight: .semibold))
+                        .foregroundStyle(Theme.textSecondary)
                         .monospacedDigit()
                 }
             }
