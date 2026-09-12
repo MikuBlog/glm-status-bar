@@ -50,19 +50,19 @@ struct RangeSegmented: View {
     var statsForCaption: RangeUsageStats?
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 14) {
             ForEach(UsageRange.allCases) { range in
                 let selected = selection == range
                 Text(range.label)
                     .font(.system(size: 12, weight: selected ? .semibold : .regular))
                     .foregroundStyle(selected ? .white : Theme.textSecondary)
-                    .padding(.horizontal, 11)
-                    .padding(.vertical, 3)
+                    .padding(.horizontal, selected ? 13 : 2)
+                    .padding(.vertical, selected ? 5 : 2)
                     .background(
                         Capsule().fill(
                             selected
                                 ? AnyShapeStyle(Theme.accentGradient)
-                                : AnyShapeStyle(Color.white.opacity(0.06))
+                                : AnyShapeStyle(Color.clear)
                         )
                     )
                     .contentShape(Capsule())
@@ -81,8 +81,6 @@ struct RangeSegmented: View {
                     .monospacedDigit()
             }
         }
-        .padding(2.5)
-        .background(Capsule().fill(Color.white.opacity(0.05)))
     }
 }
 
