@@ -9,7 +9,7 @@ enum PanelSnapshot {
     static func maybeRunSnapshotMode() {
         guard let path = ProcessInfo.processInfo.environment["GLM_PANEL_SNAPSHOT"], !path.isEmpty else {
             maybeRunBadgeSnapshotMode()
-            maybeRunDashboardSnapshotMode()
+            maybeRunMenuSnapshotMode()
             return
         }
 
@@ -231,6 +231,85 @@ enum PanelSnapshot {
         )
         return UsageDetailPayload(granularity: "HOUR", summary: summary,
                                   modelUsage: modelUsage, mcpUsage: mcpUsage)
+    }
+
+    /// DEBUG: `GLM_MENU_SNAPSHOT=/path/out.png` renders the right-click menu.
+    @MainActor
+    static func maybeRunMenuSnapshotMode() {
+        guard let path = ProcessInfo.processInfo.environment["GLM_MENU_SNAPSHOT"], !path.isEmpty else {
+            return
+        }
+
+        struct MenuItem {
+            let title: String
+            let key: String?
+            let danger: Bool
+            init(_ title: String, key: String? = nil, danger: Bool = false) {
+                self.title = title; self.key = key; self.danger = danger
+            }
+        }
+
+        let items: [MenuItem] = [
+            MenuItem("立即刷新", key: "⌘R"),
+            MenuItem("打开网页版"),
+            MenuItem("__separator__"),
+            MenuItem("打开 Codex"),
+            MenuItem("打开 ZCode"),
+            MenuItem("__separator__"),
+            MenuItem("退出登录 / 切换账号"),
+            MenuItem("退出 GLM StatusBar", key: "⌘Q", danger: true),
+        ]
+
+        let menuView = VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                if item.title == "__separator__" {
+                    Rectangle()
+                        .fill(Color.white.opacity(0.12))
+                        .frame(height: 1)
+                        .padding(.vertical, 5)
+                        .padding(.horizontal, 10)
+                } else {
+                    HStack {
+                        Text(item.title)
+                            .font(.system(size: 13.5, weight: item.danger ? .medium : .regular))
+                            .foregroundStyle(item.danger ? Color(red: 1.0, green: 0.45, blue: 0.45) : .white.opacity(0.92))
+                        Spacer()
+                        if let key = item.key {
+                            Text(key)
+                                .font(.system(size: 12))
+                                .foregroundStyle(.white.opacity(0.4))
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                }
+            }
+        }
+        .frame(width: 264)
+        .padding(.vertical, 6)
+        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color(red: 0.16, green: 0.16, blue: 0.17)))
+        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Color.white.opacity(0.15)))
+        .shadow(color: .black.opacity(0.55), radius: 18, y: 6)
+
+        let canvas = ZStack {
+            LinearGradient(colors: [Color(red: 0.10, green: 0.11, blue: 0.14),
+                                    Color(red: 0.07, green: 0.07, blue: 0.09)],
+                           startPoint: .top, endPoint: .bottom)
+            menuView.padding(30)
+        }
+        .frame(width: 324)
+
+        let hostingView = NSHostingView(rootView: canvas)
+        hostingView.frame = NSRect(x: 0, y: 0, width: 324, height: 10)
+        hostingView.layoutSubtreeIfNeeded()
+        hostingView.frame = NSRect(x: 0, y: 0, width: 324, height: hostingView.fittingSize.height)
+
+        let rep = hostingView.bitmapImageRepForCachingDisplay(in: hostingView.bounds)
+        hostingView.cacheDisplay(in: hostingView.bounds, to: rep)
+        if let rep, let png = rep.representation(using: .png, properties: [:]) {
+            try? png.write(to: URL(fileURLWithPath: path))
+        }
+        exit(0)
     }
 
     /// `GLM_BADGE_SNAPSHOT=/path/out.png` renders the menu bar capsule in all
