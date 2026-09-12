@@ -74,16 +74,13 @@ enum PanelSnapshot {
             usageStats: usageStats
         )
 
-        // ImageRenderer cannot lay out ScrollView content — render through a
-        // real NSHostingView inside a window so the full dashboard draws.
-        let screenHeight = NSScreen.main?.visibleFrame.height ?? 900
-        let maxPanelHeight = min(720, screenHeight * 0.75)
-        let maxContentHeight = max(360, maxPanelHeight - 96)
-        let content = PanelView(maxContentHeight: maxContentHeight)
+        // Render through a real NSHostingView inside a window (ImageRenderer
+        // cannot lay out ScrollView content). Snapshot shows the full panel.
+        let content = PanelView(maxContentHeight: .infinity)
             .environmentObject(model)
             .frame(width: 520)
         let hostingView = NSHostingView(rootView: content)
-hostingView.frame = NSRect(x: 0, y: 0, width: 520, height: min(766, screenHeight * 0.8))
+        hostingView.frame = NSRect(x: 0, y: 0, width: 520, height: 2200)
 
         let window = NSWindow(
             contentRect: hostingView.frame,
@@ -100,8 +97,17 @@ hostingView.frame = NSRect(x: 0, y: 0, width: 520, height: min(766, screenHeight
         let deadline = Date().addingTimeInterval(1.2)
         while RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.05)) && Date() < deadline {}
 
-        // Render exactly what the user sees in the popover (content capped at
-        // maxContentHeight, inner ScrollView handles overflow).
+        hostingView.layoutSubtreeIfNeeded()
+        // After the runloop pump the ideal height reflects the fully laid-out
+        // content (charts included) — size the view to it before capturing.
+        let fitted = max(900, hostingView.fittingSize.height)
+        hostingView.frame = NSRect(x: 0, y: 0, width: 520, height: fitted + 24)
+        hostingView.layoutSubtreeIfNeeded()
+
+        // Second short pump for the resized layout.
+        let deadline2 = Date().addingTimeInterval(0.4)
+        while RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.05)) && Date() < deadline2 {}
+
         hostingView.layoutSubtreeIfNeeded()
         if let rep = hostingView.bitmapImageRepForCachingDisplay(in: hostingView.bounds) {
             hostingView.cacheDisplay(in: hostingView.bounds, to: rep)
@@ -110,6 +116,36 @@ hostingView.frame = NSRect(x: 0, y: 0, width: 520, height: min(766, screenHeight
             }
         }
         window.orderOut(nil)
+
+        // Trim pure-black window margins with PIL (window bg is exact black).
+        let trim = Process()
+        trim.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        trim.arguments = [
+            "python3", "-c",
+            """
+            import sys
+            from PIL import Image
+            p = sys.argv[1]
+            img = Image.open(p).convert("RGB")
+            w, h = img.size
+            px = img.load()
+            top, bottom = 0, h - 1
+            def lit(y):
+                for x in range(0, w, 4):
+                    r, g, b = px[x, y]
+                    return (r + g + b) > 15
+            while top < h - 1 and not lit(top):
+                top += 1
+            while bottom > top and not lit(bottom):
+                bottom -= 1
+            img.crop((0, max(0, top - 12), w, min(h, bottom + 12))).save(p)
+            """,
+            path,
+        ]
+        trim.standardOutput = Pipe()
+        trim.standardError = Pipe()
+        try? trim.run()
+        trim.waitUntilExit()
         exit(0)
     }
 
