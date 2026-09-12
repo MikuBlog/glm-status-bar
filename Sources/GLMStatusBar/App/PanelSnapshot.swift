@@ -8,6 +8,7 @@ enum PanelSnapshot {
     @MainActor
     static func maybeRunSnapshotMode() {
         guard let path = ProcessInfo.processInfo.environment["GLM_PANEL_SNAPSHOT"], !path.isEmpty else {
+            maybeRunBadgeSnapshotMode()
             return
         }
 
@@ -110,6 +111,93 @@ enum PanelSnapshot {
             }
         }
         window.orderOut(nil)
+        exit(0)
+    }
+
+    /// `GLM_BADGE_SNAPSHOT=/path/out.png` renders the menu bar capsule in all
+    /// its color states on a menu-bar-like strip, for the README.
+    @MainActor
+    static func maybeRunBadgeSnapshotMode() {
+        guard let path = ProcessInfo.processInfo.environment["GLM_BADGE_SNAPSHOT"], !path.isEmpty else {
+            return
+        }
+
+        func mockModel(fiveHour: Double, weekly: Double) -> AppModel {
+            let model = AppModel()
+            let limits = [
+                QuotaLimit(type: "CREDIT_LIMIT", unit: 3, number: 5,
+                           usage: 28000, currentValue: 28000 * fiveHour / 100,
+                           remaining: 28000 * (1 - fiveHour / 100),
+                           percentage: fiveHour, nextResetTime: nil),
+                QuotaLimit(type: "CREDIT_LIMIT", unit: 6, number: 1,
+                           usage: 140000, currentValue: 140000 * weekly / 100,
+                           remaining: 140000 * (1 - weekly / 100),
+                           percentage: weekly, nextResetTime: nil),
+            ]
+            model.overrideForSnapshot(.ok(limits, level: "max", Date()))
+            return model
+        }
+
+        let normal = mockModel(fiveHour: 21, weekly: 4)
+        let warning = mockModel(fiveHour: 65, weekly: 40)
+        let critical = mockModel(fiveHour: 92, weekly: 85)
+
+        let loggedOut = AppModel()
+        loggedOut.overrideForSnapshot(.loggedOut)
+
+        let error = AppModel()
+        error.overrideForSnapshot(.error("网络错误", isAuthError: false))
+
+        func badge(_ model: AppModel) -> some View {
+            MenuBarBadge(model: model)
+        }
+
+        func caption(_ text: String) -> some View {
+            Text(text)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(Color.white.opacity(0.6))
+        }
+
+        let content = VStack(spacing: 22) {
+            HStack(spacing: 26) {
+                VStack(spacing: 10) {
+                    badge(normal)
+                    caption("低用量 <50%")
+                }
+                VStack(spacing: 10) {
+                    badge(warning)
+                    caption("中用量 50–80%")
+                }
+                VStack(spacing: 10) {
+                    badge(critical)
+                    caption("高用量 >80%")
+                }
+            }
+            HStack(spacing: 26) {
+                VStack(spacing: 10) {
+                    badge(loggedOut)
+                    caption("未登录")
+                }
+                VStack(spacing: 10) {
+                    badge(error)
+                    caption("异常 / 凭证过期")
+                }
+            }
+        }
+        .padding(.horizontal, 36)
+        .padding(.vertical, 22)
+        .background(Color.black)
+
+        let renderer = ImageRenderer(content: content)
+        renderer.scale = 2
+        if let image = renderer.nsImage {
+            image.lockFocus()
+            let rep = NSBitmapImageRep(data: image.tiffRepresentation ?? Data()) ?? NSBitmapImageRep()
+            image.unlockFocus()
+            if let png = rep.representation(using: .png, properties: [:]) {
+                try? png.write(to: URL(fileURLWithPath: path))
+            }
+        }
         exit(0)
     }
 }
