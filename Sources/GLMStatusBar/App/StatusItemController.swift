@@ -191,9 +191,9 @@ final class StatusItemController: NSObject, NSMenuDelegate, NSPopoverDelegate {
     }
 
     private func makePopover() -> NSPopover {
-        // The panel never grows past 4/5 of the visible screen; the inner
-        // ScrollView absorbs any overflow, so shorter content renders with
-        // no scrollbar at all (adaptive height).
+        // Adaptive height: the popover follows the SwiftUI content's ideal
+        // size (error/logged-out states render compact), while the inner
+        // ScrollView caps the dashboard at 4/5 of the visible screen.
         let screenH = NSScreen.main?.visibleFrame.height ?? 900
         let maxPanelHeight = screenH * 0.8
         let maxContentHeight = max(360, maxPanelHeight - 96)
@@ -203,13 +203,15 @@ final class StatusItemController: NSObject, NSMenuDelegate, NSPopoverDelegate {
                 .environmentObject(model)
                 .frame(width: 520)
         )
+        hosting.sizingOptions = .preferredContentSize
 
         let popover = NSPopover()
         popover.behavior = .transient
         popover.animates = true
         popover.appearance = NSAppearance(named: .vibrantDark)
         popover.contentViewController = hosting
-        popover.contentSize = NSSize(width: 520, height: maxPanelHeight)
+        // Initial size; the hosting controller refines it to the content.
+        popover.contentSize = NSSize(width: 520, height: 460)
         return popover
     }
 

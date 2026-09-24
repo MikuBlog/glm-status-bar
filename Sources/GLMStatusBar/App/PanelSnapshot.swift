@@ -69,10 +69,19 @@ enum PanelSnapshot {
         ]
 
         let model = AppModel()
-        model.overrideForSnapshot(
-            .ok(mock, level: "max", Date()),
-            usageStats: usageStats
-        )
+        switch ProcessInfo.processInfo.environment["GLM_SNAPSHOT_STATE"] {
+        case "error":
+            model.overrideForSnapshot(.error("网络错误：连接超时，请检查网络后重试", isAuthError: false))
+        case "loggedOut":
+            model.overrideForSnapshot(.loggedOut)
+        case "loading":
+            model.overrideForSnapshot(.loading)
+        default:
+            model.overrideForSnapshot(
+                .ok(mock, level: "max", Date()),
+                usageStats: usageStats
+            )
+        }
 
         // Render through a real NSHostingView inside a window (ImageRenderer
         // cannot lay out ScrollView content). Snapshot shows the full panel.
@@ -100,8 +109,11 @@ enum PanelSnapshot {
         hostingView.layoutSubtreeIfNeeded()
         // After the runloop pump the ideal height reflects the fully laid-out
         // content (charts included) — size the view to it before capturing.
-        let fitted = max(900, hostingView.fittingSize.height)
-        hostingView.frame = NSRect(x: 0, y: 0, width: 520, height: fitted + 24)
+        // ScrollView-based states may report a clamped ideal; fall back to a
+        // tall canvas when the measurement looks degenerate.
+        let fitted = hostingView.fittingSize.height
+        let targetHeight = fitted > 100 ? fitted + 24 : 1000
+        hostingView.frame = NSRect(x: 0, y: 0, width: 520, height: targetHeight)
         hostingView.layoutSubtreeIfNeeded()
 
         // Second short pump for the resized layout.
@@ -304,10 +316,11 @@ enum PanelSnapshot {
         hostingView.layoutSubtreeIfNeeded()
         hostingView.frame = NSRect(x: 0, y: 0, width: 324, height: hostingView.fittingSize.height)
 
-        let rep = hostingView.bitmapImageRepForCachingDisplay(in: hostingView.bounds)
-        hostingView.cacheDisplay(in: hostingView.bounds, to: rep)
-        if let rep, let png = rep.representation(using: .png, properties: [:]) {
-            try? png.write(to: URL(fileURLWithPath: path))
+        if let rep = hostingView.bitmapImageRepForCachingDisplay(in: hostingView.bounds) {
+            hostingView.cacheDisplay(in: hostingView.bounds, to: rep)
+            if let png = rep.representation(using: .png, properties: [:]) {
+                try? png.write(to: URL(fileURLWithPath: path))
+            }
         }
         exit(0)
     }
