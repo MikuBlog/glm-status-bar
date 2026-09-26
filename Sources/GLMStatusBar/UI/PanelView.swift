@@ -246,6 +246,7 @@ struct PanelView: View {
         // fully expanded; the real popover uses a capped ScrollView.
         let sections = VStack(spacing: 10) {
             quotaGrid
+            resetQuotaStrip
             UsageDashboardView()
                 .padding(.horizontal, 16)
         }
@@ -266,6 +267,39 @@ struct PanelView: View {
                     .scrollBounceBehavior(.basedOnSize)
                     .frame(maxHeight: maxContentHeight)
             }
+        }
+    }
+
+    // MARK: - Reset quota strip
+
+    @ViewBuilder
+    private var resetQuotaStrip: some View {
+        if let quota = model.resetQuota, quota.totalCount > 0 {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.counterclockwise.circle.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Theme.accentGradient)
+                Text("可重置")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                Text("5小时 ×\(quota.fiveHourCount) · 周 ×\(quota.weekCount)")
+                    .font(.system(size: 10.5, weight: .medium))
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.textSecondary)
+                Spacer(minLength: 0)
+                Text("\(quota.totalCount) 次未使用")
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.textSecondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Capsule().fill(Color.white.opacity(0.07)))
+                    .overlay(Capsule().strokeBorder(Color.white.opacity(0.08)))
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(Theme.cardShape(radius: 12).fill(Theme.cardFill))
+            .overlay(Theme.cardShape(radius: 12).strokeBorder(Theme.cardBorder))
         }
     }
 

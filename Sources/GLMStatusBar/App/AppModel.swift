@@ -31,6 +31,7 @@ final class AppModel: ObservableObject {
 
     static let apiURL = URL(string: "https://bigmodel.cn/api/monitor/usage/quota/limit")!
     static let usageDetailURL = URL(string: "https://bigmodel.cn/api/monitor/credit-usage/usage-detail")!
+    static let resetListURL = URL(string: "https://bigmodel.cn/api/biz/customer-package-reset/list?targetType=PERSONAL")!
     static let overviewURL = URL(string: "https://bigmodel.cn/coding-plan/personal/overview")!
     static let userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15"
 
@@ -49,6 +50,7 @@ final class AppModel: ObservableObject {
         }
     }
     @Published private(set) var usageStats: [UsageRange: RangeUsageStats] = [:]
+    @Published private(set) var resetQuota: ResetQuotaData?
     /// Shown on the logged-out panel, e.g. "凭证已过期，请重新登录".
     @Published var loginNotice: String?
 
@@ -57,18 +59,21 @@ final class AppModel: ObservableObject {
     private var usageTimer: Timer?
     private var inFlight = false
     private var usageInFlight: Set<UsageRange> = []
+    private var lastResetFetch = Date.distantPast
     private var loginController: LoginWindowController?
 
     /// Developer/UI-snapshot only: inject a state without touching the network.
     func overrideForSnapshot(
         _ newState: State,
-        usageStats: [UsageRange: RangeUsageStats] = [:]
+        usageStats: [UsageRange: RangeUsageStats] = [:],
+        resetQuota: ResetQuotaData? = nil
     ) {
         token = nil
         timer?.invalidate()
         state = newState
         usageTimer?.invalidate()
         self.usageStats = usageStats
+        self.resetQuota = resetQuota
         if case .ok = newState { lastUpdated = Date() }
     }
 
@@ -89,6 +94,7 @@ final class AppModel: ObservableObject {
         fetch()
         restartTimer()
         fetchUsageStatsIfNeeded(force: true)
+        fetchResetQuota()
         restartUsageTimer()
     }
 
@@ -103,8 +109,32 @@ final class AppModel: ObservableObject {
         usageTimer = Timer.scheduledTimer(withTimeInterval: usagePollInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.fetchUsageStatsIfNeeded(force: false)
+                self?.fetchResetQuota()
             }
         }
+    }
+
+    private func fetchResetQuota() {
+        guard let token,
+              Date().timeIntervalSince(lastResetFetch) > usagePollInterval * 0.75 else { return }
+        lastResetFetch = Date()
+        var request = URLRequest(url: Self.resetListURL, timeoutInterval: 10)
+        request.setValue(token, forHTTPHeaderField: "Authorization")
+        request.setValue("application/json, text/plain, */*", forHTTPHeaderField: "Accept")
+        request.setValue(Self.userAgent, forHTTPHeaderField: "User-Agent")
+        URLSession.shared.dataTask(with: request) { [weak self] data, _, _ in
+            let quota = AppModel.parseResetQuota(data: data)
+            Task { @MainActor in
+                self?.resetQuota = quota
+            }
+        }.resume()
+    }
+
+    nonisolated static func parseResetQuota(data: Data?) -> ResetQuotaData? {
+        guard let data,
+              let body = try? JSONDecoder().decode(ResetListResponse.self, from: data),
+              body.success else { return nil }
+        return body.data
     }
 
     /// Fetches the selected range when missing, stale (>45s), or forced.
@@ -221,6 +251,7 @@ final class AppModel: ObservableObject {
             token = nil
             usageTimer?.invalidate()
             usageStats = [:]
+            resetQuota = nil
             loginNotice = "凭证已过期，请重新登录"
             state = .loggedOut
             showLoginWindow()
@@ -319,6 +350,7 @@ final class AppModel: ObservableObject {
         timer?.invalidate()
         usageTimer?.invalidate()
         usageStats = [:]
+        resetQuota = nil
         loginController?.close()
         loginController = nil
         loginNotice = "已退出登录，可重新登录或切换账号"

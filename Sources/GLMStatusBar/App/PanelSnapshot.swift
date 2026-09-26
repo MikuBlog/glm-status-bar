@@ -79,7 +79,11 @@ enum PanelSnapshot {
         default:
             model.overrideForSnapshot(
                 .ok(mock, level: "max", Date()),
-                usageStats: usageStats
+                usageStats: usageStats,
+                resetQuota: ResetQuotaData(
+                    fiveHourResets: [ResetRecord(recordId: 1, grantType: "DIRECT", expireTime: "2026-10-21 09:36:21", available: true)],
+                    weekResets: [ResetRecord(recordId: 2, grantType: "DIRECT", expireTime: "2026-10-21 09:36:21", available: true)]
+                )
             )
         }
 
