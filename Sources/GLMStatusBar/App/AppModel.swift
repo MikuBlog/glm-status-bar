@@ -33,6 +33,7 @@ final class AppModel: ObservableObject {
     static let usageDetailURL = URL(string: "https://bigmodel.cn/api/monitor/credit-usage/usage-detail")!
     static let resetListURL = URL(string: "https://bigmodel.cn/api/biz/customer-package-reset/list?targetType=PERSONAL")!
     static let overviewURL = URL(string: "https://bigmodel.cn/coding-plan/personal/overview")!
+    static let usageURL = URL(string: "https://bigmodel.cn/coding-plan/personal/usage")!
     static let userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15"
 
     /// Auto refresh cadence (per product requirement: every 3 seconds).

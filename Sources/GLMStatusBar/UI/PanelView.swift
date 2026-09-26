@@ -295,11 +295,29 @@ struct PanelView: View {
                     .padding(.vertical, 3)
                     .background(Capsule().fill(Color.white.opacity(0.07)))
                     .overlay(Capsule().strokeBorder(Color.white.opacity(0.08)))
+                Button {
+                    NSWorkspace.shared.open(AppModel.usageURL)
+                } label: {
+                    HStack(spacing: 3) {
+                        Text("重置管理")
+                            .font(.system(size: 10, weight: .semibold))
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 8, weight: .bold))
+                    }
+                    .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.00))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Capsule().fill(Color.white.opacity(0.06)))
+                    .overlay(Capsule().strokeBorder(Color.white.opacity(0.08)))
+                }
+                .buttonStyle(.plain)
+                .help("打开网页端重置管理")
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
             .background(Theme.cardShape(radius: 12).fill(Theme.cardFill))
             .overlay(Theme.cardShape(radius: 12).strokeBorder(Theme.cardBorder))
+            .padding(.horizontal, 14)
         }
     }
 
