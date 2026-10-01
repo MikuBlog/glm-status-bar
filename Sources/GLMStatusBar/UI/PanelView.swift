@@ -16,6 +16,7 @@ struct PanelView: View {
     /// screen size. Content shorter than this renders without any scrolling.
     var maxContentHeight: CGFloat = .infinity
     @State private var launchAtLogin = false
+    @State private var resetExpanded = false
 
     private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -275,50 +276,115 @@ struct PanelView: View {
     @ViewBuilder
     private var resetQuotaStrip: some View {
         if let quota = model.resetQuota, quota.totalCount > 0 {
-            HStack(spacing: 8) {
-                Image(systemName: "arrow.counterclockwise.circle.fill")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Theme.accentGradient)
-                Text("可重置")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Theme.textPrimary)
-                Text("5小时 ×\(quota.fiveHourCount) · 周 ×\(quota.weekCount)")
-                    .font(.system(size: 10.5, weight: .medium))
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.textSecondary)
-                Spacer(minLength: 0)
-                Text("\(quota.totalCount) 次未使用")
-                    .font(.system(size: 10.5, weight: .semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.textSecondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(Capsule().fill(Color.white.opacity(0.07)))
-                    .overlay(Capsule().strokeBorder(Color.white.opacity(0.08)))
-                Button {
-                    NSWorkspace.shared.open(AppModel.usageURL)
-                } label: {
-                    HStack(spacing: 3) {
-                        Text("重置管理")
-                            .font(.system(size: 10, weight: .semibold))
-                        Image(systemName: "arrow.up.right")
-                            .font(.system(size: 8, weight: .bold))
+            VStack(spacing: 0) {
+                // Header row — tap toggles details.
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.counterclockwise.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Theme.accentGradient)
+                    Text("可重置")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Theme.textPrimary)
+                    Text("5小时 ×\(quota.fiveHourCount) · 周 ×\(quota.weekCount)")
+                        .font(.system(size: 10.5, weight: .medium))
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.textSecondary)
+                    Spacer(minLength: 0)
+                    Text("\(quota.totalCount) 次未使用")
+                        .font(.system(size: 10.5, weight: .semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.textSecondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Capsule().fill(Color.white.opacity(0.07)))
+                        .overlay(Capsule().strokeBorder(Color.white.opacity(0.08)))
+                    Button {
+                        NSWorkspace.shared.open(AppModel.usageURL)
+                    } label: {
+                        HStack(spacing: 3) {
+                            Text("重置管理")
+                                .font(.system(size: 10, weight: .semibold))
+                            Image(systemName: "arrow.up.right")
+                                .font(.system(size: 8, weight: .bold))
+                        }
+                        .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.00))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Capsule().fill(Color.white.opacity(0.06)))
+                        .overlay(Capsule().strokeBorder(Color.white.opacity(0.08)))
                     }
-                    .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.00))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Capsule().fill(Color.white.opacity(0.06)))
-                    .overlay(Capsule().strokeBorder(Color.white.opacity(0.08)))
+                    .buttonStyle(.plain)
+                    .help("打开网页端重置管理")
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(Theme.textTertiary)
+                        .rotationEffect(.degrees(resetExpanded ? 180 : 0))
                 }
-                .buttonStyle(.plain)
-                .help("打开网页端重置管理")
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        resetExpanded.toggle()
+                    }
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+
+                if resetExpanded {
+                    VStack(spacing: 8) {
+                        resetGroup(
+                            title: "5小时额度", dot: Color(red: 0.30, green: 0.62, blue: 1.00),
+                            records: quota.fiveHourResets ?? [])
+                        resetGroup(
+                            title: "周额度", dot: Color(red: 0.66, green: 0.45, blue: 1.00),
+                            records: quota.weekResets ?? [])
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.bottom, 10)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
             .background(Theme.cardShape(radius: 12).fill(Theme.cardFill))
             .overlay(Theme.cardShape(radius: 12).strokeBorder(Theme.cardBorder))
             .padding(.horizontal, 14)
         }
+    }
+
+    private func resetGroup(title: String, dot: Color, records: [ResetRecord]) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Circle().fill(dot).frame(width: 6, height: 6)
+                Text(title)
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                Spacer(minLength: 0)
+                let available = records.filter { $0.available == true }.count
+                Text(available > 0 ? "可用 \(available) 次" : "暂无可用")
+                    .font(.system(size: 9.5, weight: .semibold))
+                    .foregroundStyle(available > 0 ? Color(red: 0.35, green: 0.8, blue: 0.65) : Theme.textTertiary)
+            }
+            ForEach(Array(records.enumerated()), id: \.offset) { _, record in
+                HStack(alignment: .firstTextBaseline) {
+                    Text("1 次重置")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(record.available == true ? Theme.textPrimary : Theme.textTertiary)
+                    Spacer(minLength: 0)
+                    if let expire = record.expireTime {
+                        Text("有效期至 \(expire)")
+                            .font(.system(size: 9.5))
+                            .foregroundStyle(Theme.textTertiary)
+                    }
+                    Text(record.available == true ? "可用" : "已使用")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(record.available == true ? Color(red: 0.35, green: 0.8, blue: 0.65) : Theme.textTertiary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color.white.opacity(0.06)))
+                }
+                .padding(.top, 2)
+            }
+        }
+        .padding(8)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.04)))
     }
 
     // MARK: - Footer
