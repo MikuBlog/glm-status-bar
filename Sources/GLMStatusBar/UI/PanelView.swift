@@ -340,7 +340,7 @@ struct PanelView: View {
                     }
                     .padding(.horizontal, 10)
                     .padding(.bottom, 10)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .transition(.opacity)
                 }
             }
             .background(Theme.cardShape(radius: 12).fill(Theme.cardFill))
